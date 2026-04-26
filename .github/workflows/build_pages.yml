@@ -1,0 +1,61 @@
+name: Build & Deploy Pages
+
+on:
+  schedule:
+    # Every 2 hours weekdays 09-19 KST (= UTC 00,02,04,06,08,10 Mon-Fri)
+    - cron: '0 0,2,4,6,8,10 * * 1-5'
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - 'requirements-pages.txt'
+      - '.github/workflows/build_pages.yml'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: requirements-pages.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements-pages.txt
+
+      - name: Build static dashboard
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+          ECOS_API_KEY: ${{ secrets.ECOS_API_KEY }}
+          PAGES_OUTDIR: ./public
+        run: python app/run_pages.py
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

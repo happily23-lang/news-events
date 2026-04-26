@@ -29,3 +29,6 @@ Thumbs.db
 # Claude / OMC artifacts
 .claude/
 .omc/
+
+# GitHub Pages build output (uploaded as artifact by Actions, not tracked)
+public/
