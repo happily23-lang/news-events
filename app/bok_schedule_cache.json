@@ -1,1 +1,643 @@
-{"version": 1, "by_source": {}}
+{
+  "version": 1,
+  "by_source": {
+    "bok_mpc_2026": {
+      "fetched_at": "2026-04-26",
+      "events": [
+        {
+          "type": "MACRO",
+          "event_date": "2026-01-15",
+          "title": "한국은행 금융통화위원회",
+          "body_snippet": "한은 금통위 통화정책방향 결정회의. 기준금리 결정·총재 기자간담회. 국내 금융/부동산/건설 섹터 영향.",
+          "source_url": "https://www.bok.or.kr/portal/singl/crncyPolicyDrcMtg/listYear.do",
+          "source_label": "한국은행 일정",
+          "category_hints": [
+            "fomc"
+          ],
+          "direction": "neutral",
+          "_origin": "scraper",
+          "_indicator": "base_rate"
+        },
+        {
+          "type": "MACRO",
+          "event_date": "2026-02-26",
+          "title": "한국은행 금융통화위원회",
+          "body_snippet": "한은 금통위 통화정책방향 결정회의. 기준금리 결정·총재 기자간담회. 국내 금융/부동산/건설 섹터 영향.",
+          "source_url": "https://www.bok.or.kr/portal/singl/crncyPolicyDrcMtg/listYear.do",
+          "source_label": "한국은행 일정",
+          "category_hints": [
+            "fomc"
+          ],
+          "direction": "neutral",
+          "_origin": "scraper",
+          "_indicator": "base_rate"
+        },
+        {
+          "type": "MACRO",
+          "event_date": "2026-04-10",
+          "title": "한국은행 금융통화위원회",
+          "body_snippet": "한은 금통위 통화정책방향 결정회의. 기준금리 결정·총재 기자간담회. 국내 금융/부동산/건설 섹터 영향.",
+          "source_url": "https://www.bok.or.kr/portal/singl/crncyPolicyDrcMtg/listYear.do",
+          "source_label": "한국은행 일정",
+          "category_hints": [
+            "fomc"
+          ],
+          "direction": "neutral",
+          "_origin": "scraper",
+          "_indicator": "base_rate"
+        },
+        {
+          "type": "MACRO",
+          "event_date": "2026-05-28",
+          "title": "한국은행 금융통화위원회",
+          "body_snippet": "한은 금통위 통화정책방향 결정회의. 기준금리 결정·총재 기자간담회. 국내 금융/부동산/건설 섹터 영향.",
+          "source_url": "https://www.bok.or.kr/portal/singl/crncyPolicyDrcMtg/listYear.do",
+          "source_label": "한국은행 일정",
+          "category_hints": [
+            "fomc"
+          ],
+          "direction": "neutral",
+          "_origin": "scraper",
+          "_indicator": "base_rate"
+        },
+        {
+          "type": "MACRO",
+          "event_date": "2026-07-16",
+          "title": "한국은행 금융통화위원회",
+          "body_snippet": "한은 금통위 통화정책방향 결정회의. 기준금리 결정·총재 기자간담회. 국내 금융/부동산/건설 섹터 영향.",
+          "source_url": "https://www.bok.or.kr/portal/singl/crncyPolicyDrcMtg/listYear.do",
+          "source_label": "한국은행 일정",
+          "category_hints": [
+            "fomc"
+          ],
+          "direction": "neutral",
+          "_origin": "scraper",
+          "_indicator": "base_rate"
+        },
+        {
+          "type": "MACRO",
+          "event_date": "2026-08-27",
+          "title": "한국은행 금융통화위원회",
+          "body_snippet": "한은 금통위 통화정책방향 결정회의. 기준금리 결정·총재 기자간담회. 국내 금융/부동산/건설 섹터 영향.",
+          "source_url": "https://www.bok.or.kr/portal/singl/crncyPolicyDrcMtg/listYear.do",
+          "source_label": "한국은행 일정",
+          "category_hints": [
+            "fomc"
+          ],
+          "direction": "neutral",
+          "_origin": "scraper",
+          "_indicator": "base_rate"
+        },
+        {
+          "type": "MACRO",
+          "event_date": "2026-10-22",
+          "title": "한국은행 금융통화위원회",
+          "body_snippet": "한은 금통위 통화정책방향 결정회의. 기준금리 결정·총재 기자간담회. 국내 금융/부동산/건설 섹터 영향.",
+          "source_url": "https://www.bok.or.kr/portal/singl/crncyPolicyDrcMtg/listYear.do",
+          "source_label": "한국은행 일정",
+          "category_hints": [
+            "fomc"
+          ],
+          "direction": "neutral",
+          "_origin": "scraper",
+          "_indicator": "base_rate"
+        },
+        {
+          "type": "MACRO",
+          "event_date": "2026-11-26",
+          "title": "한국은행 금융통화위원회",
+          "body_snippet": "한은 금통위 통화정책방향 결정회의. 기준금리 결정·총재 기자간담회. 국내 금융/부동산/건설 섹터 영향.",
+          "source_url": "https://www.bok.or.kr/portal/singl/crncyPolicyDrcMtg/listYear.do",
+          "source_label": "한국은행 일정",
+          "category_hints": [
+            "fomc"
+          ],
+          "direction": "neutral",
+          "_origin": "scraper",
+          "_indicator": "base_rate"
+        }
+      ]
+    },
+    "kostat_2026": {
+      "fetched_at": "2026-04-26",
+      "events": [
+        {
+          "type": "MACRO",
+          "event_date": "2026-01-02",
+          "title": "통계청 소비자물가동향 발표",
+          "body_snippet": "전월 소비자물가지수(CPI) 공표. 인플레이션 둔화/재반등 방향이 통화정책에 직접 영향.",
+          "source_url": "https://kostat.go.kr/menu.es?mid=a10301010000",
+          "source_label": "통계청 공표일정 (예상)",
+          "category_hints": [
+            "fomc",
+            "fx"
+          ],
+          "direction": "neutral",
+          "_origin": "kostat_pattern",
+          "_indicator": "cpi"
+        },
+        {
+          "type": "MACRO",
+          "event_date": "2026-01-14",
+          "title": "통계청 고용동향 발표",
+          "body_snippet": "전월 고용동향 공표. 실업률·취업자 수 변동이 노동시장 강도 시그널.",
+          "source_url": "https://kostat.go.kr/menu.es?mid=a10301010000",
+          "source_label": "통계청 공표일정 (예상)",
+          "category_hints": [
+            "fomc"
+          ],
+          "direction": "neutral",
+          "_origin": "kostat_pattern",
+          "_indicator": "employment"
+        },
+        {
+          "type": "MACRO",
+          "event_date": "2026-01-28",
+          "title": "통계청 산업활동동향 발표",
+          "body_snippet": "전월 산업활동동향 공표. 광공업생산·서비스업생산·소매판매 종합 지표.",
+          "source_url": "https://kostat.go.kr/menu.es?mid=a10301010000",
+          "source_label": "통계청 공표일정 (예상)",
+          "category_hints": [
+            "fomc"
+          ],
+          "direction": "neutral",
+          "_origin": "kostat_pattern",
+          "_indicator": "ip"
+        },
+        {
+          "type": "MACRO",
+          "event_date": "2026-02-02",
+          "title": "통계청 소비자물가동향 발표",
+          "body_snippet": "전월 소비자물가지수(CPI) 공표. 인플레이션 둔화/재반등 방향이 통화정책에 직접 영향.",
+          "source_url": "https://kostat.go.kr/menu.es?mid=a10301010000",
+          "source_label": "통계청 공표일정 (예상)",
+          "category_hints": [
+            "fomc",
+            "fx"
+          ],
+          "direction": "neutral",
+          "_origin": "kostat_pattern",
+          "_indicator": "cpi"
+        },
+        {
+          "type": "MACRO",
+          "event_date": "2026-02-14",
+          "title": "통계청 고용동향 발표",
+          "body_snippet": "전월 고용동향 공표. 실업률·취업자 수 변동이 노동시장 강도 시그널.",
+          "source_url": "https://kostat.go.kr/menu.es?mid=a10301010000",
+          "source_label": "통계청 공표일정 (예상)",
+          "category_hints": [
+            "fomc"
+          ],
+          "direction": "neutral",
+          "_origin": "kostat_pattern",
+          "_indicator": "employment"
+        },
+        {
+          "type": "MACRO",
+          "event_date": "2026-02-28",
+          "title": "통계청 산업활동동향 발표",
+          "body_snippet": "전월 산업활동동향 공표. 광공업생산·서비스업생산·소매판매 종합 지표.",
+          "source_url": "https://kostat.go.kr/menu.es?mid=a10301010000",
+          "source_label": "통계청 공표일정 (예상)",
+          "category_hints": [
+            "fomc"
+          ],
+          "direction": "neutral",
+          "_origin": "kostat_pattern",
+          "_indicator": "ip"
+        },
+        {
+          "type": "MACRO",
+          "event_date": "2026-03-02",
+          "title": "통계청 소비자물가동향 발표",
+          "body_snippet": "전월 소비자물가지수(CPI) 공표. 인플레이션 둔화/재반등 방향이 통화정책에 직접 영향.",
+          "source_url": "https://kostat.go.kr/menu.es?mid=a10301010000",
+          "source_label": "통계청 공표일정 (예상)",
+          "category_hints": [
+            "fomc",
+            "fx"
+          ],
+          "direction": "neutral",
+          "_origin": "kostat_pattern",
+          "_indicator": "cpi"
+        },
+        {
+          "type": "MACRO",
+          "event_date": "2026-03-14",
+          "title": "통계청 고용동향 발표",
+          "body_snippet": "전월 고용동향 공표. 실업률·취업자 수 변동이 노동시장 강도 시그널.",
+          "source_url": "https://kostat.go.kr/menu.es?mid=a10301010000",
+          "source_label": "통계청 공표일정 (예상)",
+          "category_hints": [
+            "fomc"
+          ],
+          "direction": "neutral",
+          "_origin": "kostat_pattern",
+          "_indicator": "employment"
+        },
+        {
+          "type": "MACRO",
+          "event_date": "2026-03-28",
+          "title": "통계청 산업활동동향 발표",
+          "body_snippet": "전월 산업활동동향 공표. 광공업생산·서비스업생산·소매판매 종합 지표.",
+          "source_url": "https://kostat.go.kr/menu.es?mid=a10301010000",
+          "source_label": "통계청 공표일정 (예상)",
+          "category_hints": [
+            "fomc"
+          ],
+          "direction": "neutral",
+          "_origin": "kostat_pattern",
+          "_indicator": "ip"
+        },
+        {
+          "type": "MACRO",
+          "event_date": "2026-04-02",
+          "title": "통계청 소비자물가동향 발표",
+          "body_snippet": "전월 소비자물가지수(CPI) 공표. 인플레이션 둔화/재반등 방향이 통화정책에 직접 영향.",
+          "source_url": "https://kostat.go.kr/menu.es?mid=a10301010000",
+          "source_label": "통계청 공표일정 (예상)",
+          "category_hints": [
+            "fomc",
+            "fx"
+          ],
+          "direction": "neutral",
+          "_origin": "kostat_pattern",
+          "_indicator": "cpi"
+        },
+        {
+          "type": "MACRO",
+          "event_date": "2026-04-14",
+          "title": "통계청 고용동향 발표",
+          "body_snippet": "전월 고용동향 공표. 실업률·취업자 수 변동이 노동시장 강도 시그널.",
+          "source_url": "https://kostat.go.kr/menu.es?mid=a10301010000",
+          "source_label": "통계청 공표일정 (예상)",
+          "category_hints": [
+            "fomc"
+          ],
+          "direction": "neutral",
+          "_origin": "kostat_pattern",
+          "_indicator": "employment"
+        },
+        {
+          "type": "MACRO",
+          "event_date": "2026-04-28",
+          "title": "통계청 산업활동동향 발표",
+          "body_snippet": "전월 산업활동동향 공표. 광공업생산·서비스업생산·소매판매 종합 지표.",
+          "source_url": "https://kostat.go.kr/menu.es?mid=a10301010000",
+          "source_label": "통계청 공표일정 (예상)",
+          "category_hints": [
+            "fomc"
+          ],
+          "direction": "neutral",
+          "_origin": "kostat_pattern",
+          "_indicator": "ip"
+        },
+        {
+          "type": "MACRO",
+          "event_date": "2026-05-02",
+          "title": "통계청 소비자물가동향 발표",
+          "body_snippet": "전월 소비자물가지수(CPI) 공표. 인플레이션 둔화/재반등 방향이 통화정책에 직접 영향.",
+          "source_url": "https://kostat.go.kr/menu.es?mid=a10301010000",
+          "source_label": "통계청 공표일정 (예상)",
+          "category_hints": [
+            "fomc",
+            "fx"
+          ],
+          "direction": "neutral",
+          "_origin": "kostat_pattern",
+          "_indicator": "cpi"
+        },
+        {
+          "type": "MACRO",
+          "event_date": "2026-05-14",
+          "title": "통계청 고용동향 발표",
+          "body_snippet": "전월 고용동향 공표. 실업률·취업자 수 변동이 노동시장 강도 시그널.",
+          "source_url": "https://kostat.go.kr/menu.es?mid=a10301010000",
+          "source_label": "통계청 공표일정 (예상)",
+          "category_hints": [
+            "fomc"
+          ],
+          "direction": "neutral",
+          "_origin": "kostat_pattern",
+          "_indicator": "employment"
+        },
+        {
+          "type": "MACRO",
+          "event_date": "2026-05-28",
+          "title": "통계청 산업활동동향 발표",
+          "body_snippet": "전월 산업활동동향 공표. 광공업생산·서비스업생산·소매판매 종합 지표.",
+          "source_url": "https://kostat.go.kr/menu.es?mid=a10301010000",
+          "source_label": "통계청 공표일정 (예상)",
+          "category_hints": [
+            "fomc"
+          ],
+          "direction": "neutral",
+          "_origin": "kostat_pattern",
+          "_indicator": "ip"
+        },
+        {
+          "type": "MACRO",
+          "event_date": "2026-06-02",
+          "title": "통계청 소비자물가동향 발표",
+          "body_snippet": "전월 소비자물가지수(CPI) 공표. 인플레이션 둔화/재반등 방향이 통화정책에 직접 영향.",
+          "source_url": "https://kostat.go.kr/menu.es?mid=a10301010000",
+          "source_label": "통계청 공표일정 (예상)",
+          "category_hints": [
+            "fomc",
+            "fx"
+          ],
+          "direction": "neutral",
+          "_origin": "kostat_pattern",
+          "_indicator": "cpi"
+        },
+        {
+          "type": "MACRO",
+          "event_date": "2026-06-14",
+          "title": "통계청 고용동향 발표",
+          "body_snippet": "전월 고용동향 공표. 실업률·취업자 수 변동이 노동시장 강도 시그널.",
+          "source_url": "https://kostat.go.kr/menu.es?mid=a10301010000",
+          "source_label": "통계청 공표일정 (예상)",
+          "category_hints": [
+            "fomc"
+          ],
+          "direction": "neutral",
+          "_origin": "kostat_pattern",
+          "_indicator": "employment"
+        },
+        {
+          "type": "MACRO",
+          "event_date": "2026-06-28",
+          "title": "통계청 산업활동동향 발표",
+          "body_snippet": "전월 산업활동동향 공표. 광공업생산·서비스업생산·소매판매 종합 지표.",
+          "source_url": "https://kostat.go.kr/menu.es?mid=a10301010000",
+          "source_label": "통계청 공표일정 (예상)",
+          "category_hints": [
+            "fomc"
+          ],
+          "direction": "neutral",
+          "_origin": "kostat_pattern",
+          "_indicator": "ip"
+        },
+        {
+          "type": "MACRO",
+          "event_date": "2026-07-02",
+          "title": "통계청 소비자물가동향 발표",
+          "body_snippet": "전월 소비자물가지수(CPI) 공표. 인플레이션 둔화/재반등 방향이 통화정책에 직접 영향.",
+          "source_url": "https://kostat.go.kr/menu.es?mid=a10301010000",
+          "source_label": "통계청 공표일정 (예상)",
+          "category_hints": [
+            "fomc",
+            "fx"
+          ],
+          "direction": "neutral",
+          "_origin": "kostat_pattern",
+          "_indicator": "cpi"
+        },
+        {
+          "type": "MACRO",
+          "event_date": "2026-07-14",
+          "title": "통계청 고용동향 발표",
+          "body_snippet": "전월 고용동향 공표. 실업률·취업자 수 변동이 노동시장 강도 시그널.",
+          "source_url": "https://kostat.go.kr/menu.es?mid=a10301010000",
+          "source_label": "통계청 공표일정 (예상)",
+          "category_hints": [
+            "fomc"
+          ],
+          "direction": "neutral",
+          "_origin": "kostat_pattern",
+          "_indicator": "employment"
+        },
+        {
+          "type": "MACRO",
+          "event_date": "2026-07-28",
+          "title": "통계청 산업활동동향 발표",
+          "body_snippet": "전월 산업활동동향 공표. 광공업생산·서비스업생산·소매판매 종합 지표.",
+          "source_url": "https://kostat.go.kr/menu.es?mid=a10301010000",
+          "source_label": "통계청 공표일정 (예상)",
+          "category_hints": [
+            "fomc"
+          ],
+          "direction": "neutral",
+          "_origin": "kostat_pattern",
+          "_indicator": "ip"
+        },
+        {
+          "type": "MACRO",
+          "event_date": "2026-08-02",
+          "title": "통계청 소비자물가동향 발표",
+          "body_snippet": "전월 소비자물가지수(CPI) 공표. 인플레이션 둔화/재반등 방향이 통화정책에 직접 영향.",
+          "source_url": "https://kostat.go.kr/menu.es?mid=a10301010000",
+          "source_label": "통계청 공표일정 (예상)",
+          "category_hints": [
+            "fomc",
+            "fx"
+          ],
+          "direction": "neutral",
+          "_origin": "kostat_pattern",
+          "_indicator": "cpi"
+        },
+        {
+          "type": "MACRO",
+          "event_date": "2026-08-14",
+          "title": "통계청 고용동향 발표",
+          "body_snippet": "전월 고용동향 공표. 실업률·취업자 수 변동이 노동시장 강도 시그널.",
+          "source_url": "https://kostat.go.kr/menu.es?mid=a10301010000",
+          "source_label": "통계청 공표일정 (예상)",
+          "category_hints": [
+            "fomc"
+          ],
+          "direction": "neutral",
+          "_origin": "kostat_pattern",
+          "_indicator": "employment"
+        },
+        {
+          "type": "MACRO",
+          "event_date": "2026-08-28",
+          "title": "통계청 산업활동동향 발표",
+          "body_snippet": "전월 산업활동동향 공표. 광공업생산·서비스업생산·소매판매 종합 지표.",
+          "source_url": "https://kostat.go.kr/menu.es?mid=a10301010000",
+          "source_label": "통계청 공표일정 (예상)",
+          "category_hints": [
+            "fomc"
+          ],
+          "direction": "neutral",
+          "_origin": "kostat_pattern",
+          "_indicator": "ip"
+        },
+        {
+          "type": "MACRO",
+          "event_date": "2026-09-02",
+          "title": "통계청 소비자물가동향 발표",
+          "body_snippet": "전월 소비자물가지수(CPI) 공표. 인플레이션 둔화/재반등 방향이 통화정책에 직접 영향.",
+          "source_url": "https://kostat.go.kr/menu.es?mid=a10301010000",
+          "source_label": "통계청 공표일정 (예상)",
+          "category_hints": [
+            "fomc",
+            "fx"
+          ],
+          "direction": "neutral",
+          "_origin": "kostat_pattern",
+          "_indicator": "cpi"
+        },
+        {
+          "type": "MACRO",
+          "event_date": "2026-09-14",
+          "title": "통계청 고용동향 발표",
+          "body_snippet": "전월 고용동향 공표. 실업률·취업자 수 변동이 노동시장 강도 시그널.",
+          "source_url": "https://kostat.go.kr/menu.es?mid=a10301010000",
+          "source_label": "통계청 공표일정 (예상)",
+          "category_hints": [
+            "fomc"
+          ],
+          "direction": "neutral",
+          "_origin": "kostat_pattern",
+          "_indicator": "employment"
+        },
+        {
+          "type": "MACRO",
+          "event_date": "2026-09-28",
+          "title": "통계청 산업활동동향 발표",
+          "body_snippet": "전월 산업활동동향 공표. 광공업생산·서비스업생산·소매판매 종합 지표.",
+          "source_url": "https://kostat.go.kr/menu.es?mid=a10301010000",
+          "source_label": "통계청 공표일정 (예상)",
+          "category_hints": [
+            "fomc"
+          ],
+          "direction": "neutral",
+          "_origin": "kostat_pattern",
+          "_indicator": "ip"
+        },
+        {
+          "type": "MACRO",
+          "event_date": "2026-10-02",
+          "title": "통계청 소비자물가동향 발표",
+          "body_snippet": "전월 소비자물가지수(CPI) 공표. 인플레이션 둔화/재반등 방향이 통화정책에 직접 영향.",
+          "source_url": "https://kostat.go.kr/menu.es?mid=a10301010000",
+          "source_label": "통계청 공표일정 (예상)",
+          "category_hints": [
+            "fomc",
+            "fx"
+          ],
+          "direction": "neutral",
+          "_origin": "kostat_pattern",
+          "_indicator": "cpi"
+        },
+        {
+          "type": "MACRO",
+          "event_date": "2026-10-14",
+          "title": "통계청 고용동향 발표",
+          "body_snippet": "전월 고용동향 공표. 실업률·취업자 수 변동이 노동시장 강도 시그널.",
+          "source_url": "https://kostat.go.kr/menu.es?mid=a10301010000",
+          "source_label": "통계청 공표일정 (예상)",
+          "category_hints": [
+            "fomc"
+          ],
+          "direction": "neutral",
+          "_origin": "kostat_pattern",
+          "_indicator": "employment"
+        },
+        {
+          "type": "MACRO",
+          "event_date": "2026-10-28",
+          "title": "통계청 산업활동동향 발표",
+          "body_snippet": "전월 산업활동동향 공표. 광공업생산·서비스업생산·소매판매 종합 지표.",
+          "source_url": "https://kostat.go.kr/menu.es?mid=a10301010000",
+          "source_label": "통계청 공표일정 (예상)",
+          "category_hints": [
+            "fomc"
+          ],
+          "direction": "neutral",
+          "_origin": "kostat_pattern",
+          "_indicator": "ip"
+        },
+        {
+          "type": "MACRO",
+          "event_date": "2026-11-02",
+          "title": "통계청 소비자물가동향 발표",
+          "body_snippet": "전월 소비자물가지수(CPI) 공표. 인플레이션 둔화/재반등 방향이 통화정책에 직접 영향.",
+          "source_url": "https://kostat.go.kr/menu.es?mid=a10301010000",
+          "source_label": "통계청 공표일정 (예상)",
+          "category_hints": [
+            "fomc",
+            "fx"
+          ],
+          "direction": "neutral",
+          "_origin": "kostat_pattern",
+          "_indicator": "cpi"
+        },
+        {
+          "type": "MACRO",
+          "event_date": "2026-11-14",
+          "title": "통계청 고용동향 발표",
+          "body_snippet": "전월 고용동향 공표. 실업률·취업자 수 변동이 노동시장 강도 시그널.",
+          "source_url": "https://kostat.go.kr/menu.es?mid=a10301010000",
+          "source_label": "통계청 공표일정 (예상)",
+          "category_hints": [
+            "fomc"
+          ],
+          "direction": "neutral",
+          "_origin": "kostat_pattern",
+          "_indicator": "employment"
+        },
+        {
+          "type": "MACRO",
+          "event_date": "2026-11-28",
+          "title": "통계청 산업활동동향 발표",
+          "body_snippet": "전월 산업활동동향 공표. 광공업생산·서비스업생산·소매판매 종합 지표.",
+          "source_url": "https://kostat.go.kr/menu.es?mid=a10301010000",
+          "source_label": "통계청 공표일정 (예상)",
+          "category_hints": [
+            "fomc"
+          ],
+          "direction": "neutral",
+          "_origin": "kostat_pattern",
+          "_indicator": "ip"
+        },
+        {
+          "type": "MACRO",
+          "event_date": "2026-12-02",
+          "title": "통계청 소비자물가동향 발표",
+          "body_snippet": "전월 소비자물가지수(CPI) 공표. 인플레이션 둔화/재반등 방향이 통화정책에 직접 영향.",
+          "source_url": "https://kostat.go.kr/menu.es?mid=a10301010000",
+          "source_label": "통계청 공표일정 (예상)",
+          "category_hints": [
+            "fomc",
+            "fx"
+          ],
+          "direction": "neutral",
+          "_origin": "kostat_pattern",
+          "_indicator": "cpi"
+        },
+        {
+          "type": "MACRO",
+          "event_date": "2026-12-14",
+          "title": "통계청 고용동향 발표",
+          "body_snippet": "전월 고용동향 공표. 실업률·취업자 수 변동이 노동시장 강도 시그널.",
+          "source_url": "https://kostat.go.kr/menu.es?mid=a10301010000",
+          "source_label": "통계청 공표일정 (예상)",
+          "category_hints": [
+            "fomc"
+          ],
+          "direction": "neutral",
+          "_origin": "kostat_pattern",
+          "_indicator": "employment"
+        },
+        {
+          "type": "MACRO",
+          "event_date": "2026-12-28",
+          "title": "통계청 산업활동동향 발표",
+          "body_snippet": "전월 산업활동동향 공표. 광공업생산·서비스업생산·소매판매 종합 지표.",
+          "source_url": "https://kostat.go.kr/menu.es?mid=a10301010000",
+          "source_label": "통계청 공표일정 (예상)",
+          "category_hints": [
+            "fomc"
+          ],
+          "direction": "neutral",
+          "_origin": "kostat_pattern",
+          "_indicator": "ip"
+        }
+      ]
+    }
+  }
+}
