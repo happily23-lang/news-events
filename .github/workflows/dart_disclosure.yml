@@ -1,0 +1,46 @@
+name: DART Disclosure Cron
+
+on:
+  schedule:
+    # Hourly weekdays 09:00-18:00 KST (= Mon-Fri 00-09 UTC)
+    - cron: '0 0-9 * * 1-5'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dart-disclosure
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Fetch DART disclosures
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+        run: python app/run_dart.py
+
+      - name: Commit cache changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- app/dart_detail_cache.json; then
+            echo "No cache changes."
+          else
+            git add app/dart_detail_cache.json
+            git commit -m "chore(dart): refresh disclosure cache [skip ci]"
+            git push
+          fi
