@@ -1,0 +1,46 @@
+name: ECOS Indicator Cron
+
+on:
+  schedule:
+    # 22:00 UTC = 07:00 KST daily (after BOK MPC update)
+    - cron: '0 22 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ecos-indicator
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Refresh ECOS indicators
+        env:
+          ECOS_API_KEY: ${{ secrets.ECOS_API_KEY }}
+        run: python app/run_ecos.py
+
+      - name: Commit cache changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- app/ecos_cache.json; then
+            echo "No cache changes."
+          else
+            git add app/ecos_cache.json
+            git commit -m "chore(ecos): refresh indicator cache [skip ci]"
+            git push
+          fi

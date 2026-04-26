@@ -1,0 +1,44 @@
+name: Naver Supply Cron
+
+on:
+  schedule:
+    # 10:00 UTC = 19:00 KST weekdays (after market close + data settlement)
+    - cron: '0 10 * * 1-5'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: naver-supply
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Refresh Naver supply
+        run: python app/run_naver.py
+
+      - name: Commit cache changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- app/naver_supply_cache.json; then
+            echo "No cache changes."
+          else
+            git add app/naver_supply_cache.json
+            git commit -m "chore(naver): refresh supply cache [skip ci]"
+            git push
+          fi
