@@ -21,6 +21,7 @@ from events import (
     collect_inferred_stocks,
     enrich_with_krx,
     find_direct_stocks_in_text,
+    resolve_category_themes,
 )
 
 
@@ -607,20 +608,27 @@ def attach_stocks_to_event(event: dict,
     direct_codes = {s.get("code") for s in direct_enriched if s.get("code")}
     inferred_codes: set[str] = set()
     resolved_themes: list[dict] = []
+    is_macro = event.get("type") == "MACRO"
     for c in matched_cats[:2]:
-        stocks, themes = collect_inferred_stocks(c, theme_index, stocks_per_theme=3, cap=5)
-        stocks = enrich_with_krx(stocks, name_map, code_map)
-        for s in stocks:
-            code = s.get("code")
-            if not code or code in direct_codes or code in inferred_codes:
-                continue
-            inferred_codes.add(code)
-            s["matched_category"] = c["label"]
-            inferred_stocks.append(s)
+        if is_macro:
+            # 거시 이벤트(CPI/FOMC/금통위 등)는 카테고리 theme_hints가 광범위해
+            # "오늘 등락률 상위 증권/보험사" 같은 가짜 시그널을 만든다 — 종목 fetch 생략하고
+            # 영향 섹터 라벨로만 표시한다 (렌더 단계).
+            themes = resolve_category_themes(c, theme_index)
+        else:
+            stocks, themes = collect_inferred_stocks(c, theme_index, stocks_per_theme=3, cap=5)
+            stocks = enrich_with_krx(stocks, name_map, code_map)
+            for s in stocks:
+                code = s.get("code")
+                if not code or code in direct_codes or code in inferred_codes:
+                    continue
+                inferred_codes.add(code)
+                s["matched_category"] = c["label"]
+                inferred_stocks.append(s)
         for t in themes:
             if t["no"] not in {x["no"] for x in resolved_themes}:
                 resolved_themes.append(t)
-        if len(inferred_stocks) >= max_stocks:
+        if not is_macro and len(inferred_stocks) >= max_stocks:
             break
 
     event["direct_stocks"] = direct_enriched[:max_stocks]
@@ -737,6 +745,26 @@ def _stock_chip(s: dict, kind: str) -> str:
     )
 
 
+def _theme_chip(t: dict) -> str:
+    name = _html_escape(t.get("name") or "")
+    no = t.get("no") or ""
+    pct = t.get("change_pct")
+    pct_str = f"{pct:+.2f}%" if isinstance(pct, (int, float)) else ""
+    cls = "up" if isinstance(pct, (int, float)) and pct > 0 else (
+        "down" if isinstance(pct, (int, float)) and pct < 0 else "flat"
+    )
+    link = (
+        f"https://finance.naver.com/sise/sise_group_detail.naver?type=theme&no={no}"
+        if no else "#"
+    )
+    return (
+        f'<a class="theme-chip {cls}" href="{link}" target="_blank" rel="noopener">'
+        f'<span class="t-name">{name}</span>'
+        + (f'<span class="t-pct">{pct_str}</span>' if pct_str else '')
+        + '</a>'
+    )
+
+
 def _format_date_korean(iso_str: str) -> str:
     try:
         d = datetime.strptime(iso_str, "%Y-%m-%d").date()
@@ -778,7 +806,19 @@ def _render_event_card(event: dict) -> str:
             '<div class="label label-direct">📌 본문 직접 언급</div>'
             f'<div class="chips">{chips}</div></div>'
         )
-    if event.get("inferred_stocks"):
+    is_macro = event.get("type") == "MACRO"
+    if is_macro and event.get("resolved_themes"):
+        # 거시 이벤트는 개별 종목 대신 영향 섹터를 표시 (테마 등락률 = 섹터 반응 시그널).
+        chips = "".join(_theme_chip(t) for t in event["resolved_themes"])
+        cats = ", ".join(_html_escape(c) for c in event.get("matched_categories", [])[:3])
+        stocks_html += (
+            '<div class="stocks-block">'
+            '<div class="label label-inferred">🌐 영향 섹터 (카테고리 매핑)</div>'
+            f'<div class="chips">{chips}</div>'
+            + (f'<div class="theme-source">매핑 카테고리: {cats}</div>' if cats else '')
+            + '</div>'
+        )
+    elif event.get("inferred_stocks"):
         chips = "".join(_stock_chip(s, "inferred") for s in event["inferred_stocks"])
         cats = ", ".join(_html_escape(c) for c in event.get("matched_categories", [])[:3])
         stocks_html += (
@@ -1034,6 +1074,19 @@ def render_calendar_html(events: list[dict],
     background:var(--inferred-soft); color:var(--inferred);
     font-size:10px; padding:2px 6px; border-radius:4px;
   }}
+  .theme-chip {{
+    display:inline-flex; align-items:center; gap:8px;
+    background:var(--inferred-soft); border:1px solid var(--border);
+    border-left:3px solid var(--inferred);
+    padding:5px 10px; border-radius:8px;
+    text-decoration:none; color:var(--text); font-size:13px;
+  }}
+  .theme-chip.up {{ background:var(--up-soft); border-color:#f5c6cb; }}
+  .theme-chip.up .t-pct {{ color:var(--up); font-weight:700; }}
+  .theme-chip.down {{ background:var(--down-soft); border-color:#b8d4ff; }}
+  .theme-chip.down .t-pct {{ color:var(--down); font-weight:700; }}
+  .t-name {{ font-weight:600; }}
+  .t-pct {{ font-size:12px; }}
   .theme-source {{ margin-top:8px; font-size:11px; color:var(--muted); font-style:italic; }}
 
   .empty-state {{
