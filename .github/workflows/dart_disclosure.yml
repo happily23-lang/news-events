@@ -2,8 +2,8 @@ name: DART Disclosure Cron
 
 on:
   schedule:
-    # Hourly weekdays 09:00-18:00 KST (= Mon-Fri 00-09 UTC)
-    - cron: '0 0-9 * * 1-5'
+    # Weekdays 09:00 KST once daily (= Mon-Fri 00:00 UTC)
+    - cron: '0 0 * * 1-5'
   workflow_dispatch: {}
 
 permissions:
