@@ -972,6 +972,7 @@ def render_calendar_html(events: list[dict],
     return f"""<!DOCTYPE html>
 <html lang="ko"><head><meta charset="utf-8">
 <title>{page_title} — {today}</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='14' y='22' width='72' height='68' rx='10' fill='%23fff' stroke='%230071e3' stroke-width='5'/><rect x='14' y='22' width='72' height='20' rx='10' fill='%230071e3'/><rect x='14' y='34' width='72' height='8' fill='%230071e3'/><circle cx='32' cy='14' r='5' fill='%230071e3'/><circle cx='68' cy='14' r='5' fill='%230071e3'/><circle cx='40' cy='60' r='4' fill='%23222'/><circle cx='60' cy='60' r='4' fill='%23222'/><path d='M40 72 Q50 80 60 72' stroke='%23222' stroke-width='3' fill='none' stroke-linecap='round'/><circle cx='30' cy='68' r='4' fill='%23FF9DB0' opacity='0.7'/><circle cx='70' cy='68' r='4' fill='%23FF9DB0' opacity='0.7'/></svg>">
 <style>
   :root {{
     --bg:#f5f5f7; --card:#fff; --border:#e5e5ea;
