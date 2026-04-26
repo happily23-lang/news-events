@@ -1,0 +1,44 @@
+name: BOK Schedule Cron
+
+on:
+  schedule:
+    # 21:00 UTC = 06:00 KST daily
+    - cron: '0 21 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bok-schedule
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run BOK schedule refresh
+        run: python app/run_bok.py
+
+      - name: Commit cache changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- app/bok_schedule_cache.json; then
+            echo "No cache changes."
+          else
+            git add app/bok_schedule_cache.json
+            git commit -m "chore(bok): refresh schedule cache [skip ci]"
+            git push
+          fi
