@@ -980,6 +980,76 @@
       "retries": 2,
       "last_error": "fetch_failed",
       "data": null
+    },
+    "20260427000746": {
+      "rcept_no": "20260427000746",
+      "corp_code": "00910202",
+      "disclosure_type": "유상증자결정",
+      "status": "pending_retry",
+      "fetched_at": null,
+      "retries": 1,
+      "last_error": "fetch_failed",
+      "data": null
+    },
+    "20260427000694": {
+      "rcept_no": "20260427000694",
+      "corp_code": "00230814",
+      "disclosure_type": "유상증자결정",
+      "status": "pending_retry",
+      "fetched_at": null,
+      "retries": 1,
+      "last_error": "fetch_failed",
+      "data": null
+    },
+    "20260427000584": {
+      "rcept_no": "20260427000584",
+      "corp_code": "00808068",
+      "disclosure_type": "유상증자결정",
+      "status": "pending_retry",
+      "fetched_at": null,
+      "retries": 1,
+      "last_error": "fetch_failed",
+      "data": null
+    },
+    "20260427000538": {
+      "rcept_no": "20260427000538",
+      "corp_code": "01397903",
+      "disclosure_type": "유상증자결정",
+      "status": "pending_retry",
+      "fetched_at": null,
+      "retries": 1,
+      "last_error": "fetch_failed",
+      "data": null
+    },
+    "20260427000502": {
+      "rcept_no": "20260427000502",
+      "corp_code": "00346911",
+      "disclosure_type": "유상증자결정",
+      "status": "pending_retry",
+      "fetched_at": null,
+      "retries": 1,
+      "last_error": "fetch_failed",
+      "data": null
+    },
+    "20260427000387": {
+      "rcept_no": "20260427000387",
+      "corp_code": "00105040",
+      "disclosure_type": "유상증자결정",
+      "status": "pending_retry",
+      "fetched_at": null,
+      "retries": 1,
+      "last_error": "fetch_failed",
+      "data": null
+    },
+    "20260424000820": {
+      "rcept_no": "20260424000820",
+      "corp_code": "00120906",
+      "disclosure_type": "유상증자결정",
+      "status": "pending_retry",
+      "fetched_at": null,
+      "retries": 1,
+      "last_error": "fetch_failed",
+      "data": null
     }
   },
   "face_value_by_corp": {}
