@@ -7,10 +7,6 @@ on:
   workflow_dispatch: {}
   push:
     branches: [main]
-    paths:
-      - 'app/**'
-      - 'requirements-pages.txt'
-      - '.github/workflows/build_pages.yml'
 
 permissions:
   contents: read
