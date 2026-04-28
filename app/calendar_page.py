@@ -909,6 +909,18 @@ NAV_CSS = """
   }
   .tab:hover { background: #f0f0f5; color: #1d1d1f; }
   .tab.active { background: #0071e3; color: #fff; }
+
+  @media (max-width:640px) {
+    .nav-inner { padding: 8px 12px; gap: 10px; }
+    .brand { font-size: 12px; }
+    .tabs { gap: 2px; }
+    .tab { padding: 6px 10px; font-size: 12px; border-radius: 6px; }
+  }
+  @media (max-width:380px) {
+    .brand { display: none; }
+    .nav-inner { padding: 6px 8px; gap: 4px; }
+    .tab { padding: 6px 8px; font-size: 11px; }
+  }
 """
 
 
@@ -971,6 +983,7 @@ def render_calendar_html(events: list[dict],
 
     return f"""<!DOCTYPE html>
 <html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{page_title} — {today}</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='14' y='22' width='72' height='68' rx='10' fill='%23fff' stroke='%230071e3' stroke-width='5'/><rect x='14' y='22' width='72' height='20' rx='10' fill='%230071e3'/><rect x='14' y='34' width='72' height='8' fill='%230071e3'/><circle cx='32' cy='14' r='5' fill='%230071e3'/><circle cx='68' cy='14' r='5' fill='%230071e3'/><circle cx='40' cy='60' r='4' fill='%23222'/><circle cx='60' cy='60' r='4' fill='%23222'/><path d='M40 72 Q50 80 60 72' stroke='%23222' stroke-width='3' fill='none' stroke-linecap='round'/><circle cx='30' cy='68' r='4' fill='%23FF9DB0' opacity='0.7'/><circle cx='70' cy='68' r='4' fill='%23FF9DB0' opacity='0.7'/></svg>">
 <style>
@@ -1115,8 +1128,37 @@ def render_calendar_html(events: list[dict],
   }}
 
   @media (max-width:640px) {{
-    body {{ padding:24px 16px; }}
-    .event-card {{ padding:16px 18px; }}
+    body {{ padding:12px 12px; font-size:15px; }}
+    .page-header {{ margin-bottom:20px; padding-bottom:14px; }}
+    .page-header h1 {{ font-size:22px; }}
+    .page-meta {{ font-size:13px; }}
+
+    .date-group {{ margin-bottom:20px; }}
+    .date-label {{ font-size:13px; padding:5px 12px; }}
+
+    .event-card {{ padding:14px 16px; border-radius:12px; }}
+    .event-header {{ gap:6px; flex-wrap:wrap; padding-bottom:8px; margin-bottom:8px; }}
+    .event-header h3 {{ font-size:15px; flex:1 1 100%; }}
+    .type-icon {{ font-size:14px; }}
+    .source-tag, .date-hint, .dir-badge, .flag-badge {{
+      font-size:10px; padding:2px 7px;
+    }}
+    .event-body {{ font-size:13px; padding:8px 10px; line-height:1.55; }}
+
+    .stocks-block {{ margin-top:8px; }}
+    .label {{ font-size:11px; margin-bottom:5px; }}
+    .stock-chip, .theme-chip {{ padding:4px 8px; font-size:12px; gap:6px; }}
+    .s-close {{ display:none; }}
+    .s-pct, .t-pct {{ font-size:11px; }}
+    .supply-tag {{ font-size:9px; padding:1px 4px; }}
+    .theme-tag {{ font-size:9px; padding:1px 5px; }}
+    .theme-source {{ font-size:10px; }}
+
+    .empty-state {{ padding:28px 16px; }}
+
+    .low-signal-section {{ margin-top:24px; padding-top:14px; }}
+    .low-signal-section .section-divider {{ font-size:14px; }}
+    .low-signal-section .event-card {{ padding:10px 14px; }}
   }}
 </style></head><body>
 <div class="container">

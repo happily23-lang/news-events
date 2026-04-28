@@ -687,6 +687,7 @@ def render_policy_event_html(cards: list[dict], total_news_count: int) -> str:
 
     return f"""<!DOCTYPE html>
 <html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>정책·이벤트 수혜 대시보드 — {today}</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='14' y='22' width='72' height='68' rx='10' fill='%23fff' stroke='%230071e3' stroke-width='5'/><rect x='14' y='22' width='72' height='20' rx='10' fill='%230071e3'/><rect x='14' y='34' width='72' height='8' fill='%230071e3'/><circle cx='32' cy='14' r='5' fill='%230071e3'/><circle cx='68' cy='14' r='5' fill='%230071e3'/><circle cx='40' cy='60' r='4' fill='%23222'/><circle cx='60' cy='60' r='4' fill='%23222'/><path d='M40 72 Q50 80 60 72' stroke='%23222' stroke-width='3' fill='none' stroke-linecap='round'/><circle cx='30' cy='68' r='4' fill='%23FF9DB0' opacity='0.7'/><circle cx='70' cy='68' r='4' fill='%23FF9DB0' opacity='0.7'/></svg>">
 <style>
@@ -777,8 +778,28 @@ def render_policy_event_html(cards: list[dict], total_news_count: int) -> str:
   }}
 
   @media (max-width:640px) {{
-    body {{ padding:24px 16px; }}
-    article {{ padding:18px 20px; }}
+    body {{ padding:12px 12px; font-size:15px; }}
+    .page-header {{ margin-bottom:20px; padding-bottom:14px; }}
+    .page-header h1 {{ font-size:22px; }}
+    .page-meta {{ font-size:13px; }}
+
+    article {{ padding:14px 16px; border-radius:12px; }}
+    article header {{ gap:8px; flex-wrap:wrap; padding-bottom:8px; margin-bottom:10px; }}
+    article h2 {{ font-size:16px; }}
+    .news-badge {{ margin-left:0; font-size:11px; padding:2px 8px; }}
+    .news-list li {{ font-size:13px; padding:5px 0; }}
+    .kw {{ font-size:10px; margin-left:6px; }}
+
+    .stocks-block {{ margin-top:10px; }}
+    .label {{ font-size:11px; margin-bottom:6px; }}
+    .stock-chip {{ padding:4px 8px; font-size:12px; gap:6px; }}
+    .s-close {{ display:none; }}
+    .s-pct {{ font-size:11px; }}
+    .supply-tag {{ font-size:9px; padding:1px 4px; }}
+    .theme-tag {{ font-size:9px; padding:1px 5px; }}
+    .theme-source {{ font-size:10px; }}
+
+    .empty-state {{ padding:28px 16px; }}
   }}
 </style></head><body>
 <div class="container">
