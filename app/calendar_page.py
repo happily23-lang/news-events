@@ -638,6 +638,121 @@ def attach_stocks_to_event(event: dict,
     return event
 
 
+_TITLE_NORM_RE = re.compile(r"[\s\-…·,\.\(\)\[\]\"'`~!?:;/<>《》「」『』·*&^%$#@　]+")
+_KO_THOUSAND_RE = re.compile(r"(\d+)\s*천\s*(\d{1,3}(?!\d))")  # "1천909" -> "1909"
+_KO_WON_RE = re.compile(r"억\s*원")  # "억원" -> "억"
+
+
+def _normalize_title(title: str) -> str:
+    """제목 정규화: 한글 숫자단위(`1천909`→`1909`, `억원`→`억`) 통일 후
+    공백·구두점·괄호 제거 + lowercase."""
+    s = (title or "").lower()
+    s = _KO_THOUSAND_RE.sub(lambda m: m.group(1) + m.group(2).zfill(3), s)
+    s = _KO_WON_RE.sub("억", s)
+    s = _TITLE_NORM_RE.sub("", s)
+    return s
+
+
+def _title_ngrams(s: str, n: int = 3) -> set[str]:
+    if len(s) < n:
+        return {s} if s else set()
+    return {s[i : i + n] for i in range(len(s) - n + 1)}
+
+
+def _title_similarity(a: str, b: str) -> float:
+    """문자 3-gram Jaccard. 한글 헤드라인의 미세한 표기 차이에 강건."""
+    sa = _title_ngrams(_normalize_title(a))
+    sb = _title_ngrams(_normalize_title(b))
+    if not sa or not sb:
+        return 0.0
+    inter = len(sa & sb)
+    union = len(sa | sb)
+    return inter / union if union else 0.0
+
+
+def _dedupe_news_events(events: list[dict], threshold: float = 0.55) -> list[dict]:
+    """NEWS_FUTURE 이벤트 중 같은 날짜·동일 핵심종목(또는 카테고리) 그룹 안에서
+    제목 유사도가 threshold 이상이면 1건만 살리고, 흡수된 기사 url 은
+    살아남은 카드의 ``related_urls`` 에 부착한다.
+
+    살아남는 카드 선택 기준: direct_stocks 개수 우선, 다음 본문 길이.
+    """
+
+    def _group_key(e: dict):
+        date_s = e.get("event_date", "")
+        direct = e.get("direct_stocks") or []
+        if direct:
+            code = (direct[0] or {}).get("code")
+            if code:
+                return (date_s, "S", code)
+        cats = tuple(sorted(e.get("matched_categories") or []))
+        if cats:
+            return (date_s, "C", cats)
+        return None
+
+    def _score(e: dict) -> tuple[int, int]:
+        return (
+            len(e.get("direct_stocks") or []),
+            len(e.get("body_snippet") or ""),
+        )
+
+    survivors: list[dict] = []
+    consumed: set[int] = set()
+    n = len(events)
+
+    for i in range(n):
+        if i in consumed:
+            continue
+        e = events[i]
+        if e.get("type") != "NEWS_FUTURE":
+            survivors.append(e)
+            continue
+        key_i = _group_key(e)
+        if key_i is None:
+            survivors.append(e)
+            continue
+
+        cluster = [(i, e)]
+        for j in range(i + 1, n):
+            if j in consumed:
+                continue
+            f = events[j]
+            if f.get("type") != "NEWS_FUTURE":
+                continue
+            if _group_key(f) != key_i:
+                continue
+            if _title_similarity(e.get("title", ""), f.get("title", "")) >= threshold:
+                cluster.append((j, f))
+                consumed.add(j)
+
+        if len(cluster) == 1:
+            survivors.append(e)
+            continue
+
+        cluster.sort(key=lambda pair: _score(pair[1]), reverse=True)
+        best = cluster[0][1]
+        absorbed_urls: list[dict] = []
+        seen_urls = {best.get("source_url") or ""}
+        for _, c in cluster[1:]:
+            url = c.get("source_url") or ""
+            if not url or url in seen_urls:
+                continue
+            seen_urls.add(url)
+            absorbed_urls.append(
+                {
+                    "url": url,
+                    "title": c.get("title", ""),
+                    "source_label": c.get("source_label", ""),
+                }
+            )
+        if absorbed_urls:
+            existing = best.get("related_urls") or []
+            best["related_urls"] = existing + absorbed_urls
+        survivors.append(best)
+
+    return survivors
+
+
 def build_calendar_events(news_items: list[dict],
                           name_map: dict[str, dict],
                           code_map: dict[str, dict],
@@ -698,6 +813,10 @@ def build_calendar_events(news_items: list[dict],
     # 악재 필터: direction == 'negative' 인 이벤트는 캘린더에서 제외
     # (DART 의 유상증자결정·CB·BW 등 희석성 공시)
     events = [e for e in events if e.get("direction") != "negative"]
+
+    # 뉴스 이벤트 중복 제거: 같은 날짜·동일 핵심종목 그룹 내 제목 3-gram Jaccard ≥ 0.55
+    # 흡수된 기사는 살아남은 카드의 related_urls 로 부착되어 카드 하단에 노출.
+    events = _dedupe_news_events(events)
 
     # 정렬: 날짜 → 타입 우선순위 → 종목 수 많은 순
     type_order = {"MACRO": 0, "NEWS_FUTURE": 1, "DISCLOSURE": 2}
@@ -860,6 +979,26 @@ def _render_event_card(event: dict) -> str:
         tooltip = f"신주 액면가 {post}원 / 기존 {pre}원 → 종류주(우선주 등) 발행 의심" if pre and post else "종류주 발행 의심"
         flag_badges += f'<span class="flag-badge flag-pref" title="{_html_escape(tooltip)}">🏷️ 종류주 의심</span>'
 
+    related_html = ""
+    related_urls = event.get("related_urls") or []
+    if related_urls:
+        items = "".join(
+            f'<li><a href="{_html_escape(r.get("url",""))}" target="_blank" rel="noopener">'
+            f'{_html_escape(r.get("title",""))}</a>'
+            + (
+                f' <span class="related-source">{_html_escape(r.get("source_label",""))}</span>'
+                if r.get("source_label") else ""
+            )
+            + '</li>'
+            for r in related_urls
+        )
+        related_html = (
+            '<div class="related-block">'
+            f'<div class="related-label">📎 같은 사건 다른 보도 ({len(related_urls)})</div>'
+            f'<ul class="related-list">{items}</ul>'
+            '</div>'
+        )
+
     return (
         '<article class="event-card">'
         f'<header class="event-header"><span class="type-icon">{type_icon}</span>'
@@ -868,6 +1007,7 @@ def _render_event_card(event: dict) -> str:
         f'<span class="source-tag">{src_label}</span></header>'
         f'<p class="event-body">{body}</p>'
         f'{stocks_html}'
+        f'{related_html}'
         '</article>'
     )
 
@@ -1103,6 +1243,18 @@ def render_calendar_html(events: list[dict],
   .t-pct {{ font-size:12px; }}
   .theme-source {{ margin-top:8px; font-size:11px; color:var(--muted); font-style:italic; }}
 
+  .related-block {{
+    margin-top:12px; padding-top:10px; border-top:1px dashed var(--border);
+  }}
+  .related-label {{
+    font-size:11px; font-weight:600; color:var(--muted); margin-bottom:6px;
+  }}
+  .related-list {{ list-style:none; padding:0; margin:0; }}
+  .related-list li {{ padding:3px 0; font-size:12.5px; }}
+  .related-list a {{ color:#555; text-decoration:none; }}
+  .related-list a:hover {{ color:var(--accent); text-decoration:underline; }}
+  .related-source {{ font-size:10px; color:var(--muted); margin-left:6px; }}
+
   .empty-state {{
     background:var(--card); border:1px dashed var(--border); border-radius:14px;
     padding:40px 24px; text-align:center; color:var(--muted);
@@ -1155,6 +1307,11 @@ def render_calendar_html(events: list[dict],
     .theme-source {{ font-size:10px; }}
 
     .empty-state {{ padding:28px 16px; }}
+
+    .related-block {{ margin-top:10px; padding-top:8px; }}
+    .related-label {{ font-size:10px; }}
+    .related-list li {{ font-size:12px; }}
+    .related-source {{ font-size:9px; }}
 
     .low-signal-section {{ margin-top:24px; padding-top:14px; }}
     .low-signal-section .section-divider {{ font-size:14px; }}
