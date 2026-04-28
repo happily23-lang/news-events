@@ -2,7 +2,9 @@ name: Naver Supply Cron
 
 on:
   schedule:
-    # 10:00 UTC = 19:00 KST weekdays (after market close + data settlement)
+    # 23:00 UTC Sun-Thu = 08:00 KST weekdays (morning refresh of prior trading day)
+    - cron: '0 23 * * 0-4'
+    # 10:00 UTC Mon-Fri = 19:00 KST weekdays (after market close + data settlement)
     - cron: '0 10 * * 1-5'
   workflow_dispatch: {}
 
