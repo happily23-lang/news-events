@@ -2,7 +2,7 @@
   "version": 1,
   "by_source": {
     "bok_mpc_2026": {
-      "fetched_at": "2026-04-26",
+      "fetched_at": "2026-04-28",
       "events": [
         {
           "type": "MACRO",
@@ -119,7 +119,7 @@
       ]
     },
     "kostat_2026": {
-      "fetched_at": "2026-04-26",
+      "fetched_at": "2026-04-28",
       "events": [
         {
           "type": "MACRO",
