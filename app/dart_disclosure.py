@@ -23,6 +23,8 @@ import requests
 DART_LIST_URL = "https://opendart.fss.or.kr/api/list.json"
 DART_PIIC_URL = "https://opendart.fss.or.kr/api/piicDecsn.json"
 DART_STOCK_TOTQY_URL = "https://opendart.fss.or.kr/api/stockTotqyItr.json"
+DART_BONUS_ISSUE_URL = "https://opendart.fss.or.kr/api/bonusIsstDecsn.json"
+DART_TREASURY_AQ_URL = "https://opendart.fss.or.kr/api/tsstkAqDecsn.json"
 
 ENV_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
 CACHE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dart_detail_cache.json")
@@ -80,6 +82,33 @@ def _parse_rcept_dt(s: str) -> Optional[date]:
         return date(int(s[:4]), int(s[4:6]), int(s[6:8]))
     except ValueError:
         return None
+
+
+def _parse_dart_date(raw) -> Optional[date]:
+    """DART 일정 필드 파싱. 'YYYY-MM-DD', 'YYYYMMDD', 'YYYY.MM.DD' 등 다양한 포맷 대응."""
+    if raw is None:
+        return None
+    s = str(raw).strip()
+    if not s or s == "-":
+        return None
+    try:
+        return date.fromisoformat(s)
+    except ValueError:
+        pass
+    if len(s) == 8 and s.isdigit():
+        try:
+            return date(int(s[:4]), int(s[4:6]), int(s[6:8]))
+        except ValueError:
+            return None
+    for sep in (".", "/", " "):
+        if sep in s:
+            parts = s.replace(sep, "-").split("-")
+            if len(parts) == 3:
+                try:
+                    return date(int(parts[0]), int(parts[1]), int(parts[2]))
+                except ValueError:
+                    return None
+    return None
 
 
 def _title_matches(report_nm: str) -> Optional[tuple[str, str]]:
@@ -274,6 +303,68 @@ def _fetch_piic_face_value(api_key: str, corp_code: str, rcept_no: str, rcept_dt
 
 
 # ============================================================
+# 미래 일정 추출: 무상증자/자사주취득
+# ============================================================
+
+def _fetch_bonus_issuance_schedule(api_key: str, corp_code: str, rcept_no: str,
+                                   rcept_dt: date) -> Optional[dict]:
+    """무상증자결정 상세에서 신주배정기준일/상장예정일 추출."""
+    de = rcept_dt.strftime("%Y%m%d")
+    data = _http_get_json(DART_BONUS_ISSUE_URL, {
+        "crtfc_key": api_key,
+        "corp_code": corp_code,
+        "bgn_de": de,
+        "end_de": de,
+    })
+    if not data:
+        return None
+    rows = data.get("list", [])
+    matched = next((r for r in rows if r.get("rcept_no") == rcept_no), None)
+    if not matched:
+        return None
+    asstn = _parse_dart_date(matched.get("nstk_asstn_stdde"))
+    lstg = _parse_dart_date(matched.get("nstk_lstg_pln_de"))
+    if asstn is None and lstg is None:
+        return None
+    return {
+        "asstn_stdde": asstn.isoformat() if asstn else None,
+        "lstg_pln_de": lstg.isoformat() if lstg else None,
+    }
+
+
+def _fetch_treasury_acquisition_schedule(api_key: str, corp_code: str, rcept_no: str,
+                                        rcept_dt: date) -> Optional[dict]:
+    """자기주식취득결정 상세에서 취득예정기간 시작/종료일 추출."""
+    de = rcept_dt.strftime("%Y%m%d")
+    data = _http_get_json(DART_TREASURY_AQ_URL, {
+        "crtfc_key": api_key,
+        "corp_code": corp_code,
+        "bgn_de": de,
+        "end_de": de,
+    })
+    if not data:
+        return None
+    rows = data.get("list", [])
+    matched = next((r for r in rows if r.get("rcept_no") == rcept_no), None)
+    if not matched:
+        return None
+    bgd = _parse_dart_date(matched.get("aqexpd_bgd"))
+    edd = _parse_dart_date(matched.get("aqexpd_edd"))
+    if bgd is None and edd is None:
+        return None
+    return {
+        "aqexpd_bgd": bgd.isoformat() if bgd else None,
+        "aqexpd_edd": edd.isoformat() if edd else None,
+    }
+
+
+SCHEDULE_FETCHERS = {
+    "무상증자결정": _fetch_bonus_issuance_schedule,
+    "자기주식취득결정": _fetch_treasury_acquisition_schedule,
+}
+
+
+# ============================================================
 # 유상증자 enrich + cross-run 재시도 큐
 # ============================================================
 
@@ -344,10 +435,75 @@ def _enrich_rights_issue(api_key: str, corp_code: str, rcept_no: str, rcept_dt: 
     return None, entries[rcept_no]["status"]
 
 
+def _build_schedule_resolved_entry(rcept_no: str, corp_code: str, disclosure_type: str,
+                                   data: dict, retries: int) -> dict:
+    return {
+        "rcept_no": rcept_no,
+        "corp_code": corp_code,
+        "disclosure_type": disclosure_type,
+        "status": "resolved",
+        "fetched_at": _now_aware().isoformat(),
+        "retries": retries,
+        "data": data,
+    }
+
+
+def _build_schedule_failure_entry(rcept_no: str, corp_code: str, disclosure_type: str,
+                                  retries: int) -> dict:
+    is_unknown = retries >= 2
+    return {
+        "rcept_no": rcept_no,
+        "corp_code": corp_code,
+        "disclosure_type": disclosure_type,
+        "status": "resolved_unknown" if is_unknown else "pending_retry",
+        "fetched_at": _now_aware().isoformat() if is_unknown else None,
+        "retries": retries,
+        "last_error": "fetch_failed",
+        "data": None,
+    }
+
+
+def _enrich_schedule(api_key: str, corp_code: str, rcept_no: str, rcept_dt: date,
+                     cache: dict, disclosure_type: str) -> tuple[Optional[dict], str]:
+    """무상증자결정·자기주식취득결정 일정을 캐시 또는 상세 API로 enrich.
+
+    Returns: (data_or_none, status)
+    """
+    fetcher = SCHEDULE_FETCHERS.get(disclosure_type)
+    if fetcher is None:
+        return None, "unknown_type"
+
+    entries = cache.setdefault("entries", {})
+    entry = entries.get(rcept_no)
+
+    if entry:
+        status = entry.get("status")
+        if status == "resolved":
+            return entry.get("data"), "resolved"
+        if status == "resolved_unknown":
+            return None, "resolved_unknown"
+        if status == "pending_retry":
+            return None, "pending_retry"
+
+    result = _with_retry(lambda: fetcher(api_key, corp_code, rcept_no, rcept_dt))
+    if result is not None:
+        entries[rcept_no] = _build_schedule_resolved_entry(
+            rcept_no, corp_code, disclosure_type, result, retries=0
+        )
+        return result, "resolved"
+
+    retries = (entry.get("retries", 0) + 1) if entry else 1
+    entries[rcept_no] = _build_schedule_failure_entry(
+        rcept_no, corp_code, disclosure_type, retries
+    )
+    return None, entries[rcept_no]["status"]
+
+
 def _retry_pending_entries(cache: dict, api_key: str, today: date) -> None:
     """list.json 호출 이전에 pending_retry 엔트리 1회 재시도 (in-process retry 없음).
 
     성공 → resolved 로 승격. 실패 → retries+1 후 resolved_unknown(2회) 또는 pending_retry 유지.
+    disclosure_type 별로 적절한 상세 API 로 디스패치한다.
     """
     entries = cache.setdefault("entries", {})
     pending = [
@@ -362,17 +518,30 @@ def _retry_pending_entries(cache: dict, api_key: str, today: date) -> None:
         rcept_dt = _parse_rcept_dt(rcept_no[:8])
         if not rcept_dt:
             continue
-        new_fv = _fetch_piic_face_value(api_key, corp_code, rcept_no, rcept_dt)
-        existing_fv = _get_existing_face_value(api_key, corp_code, cache, today) if new_fv is not None else None
+        disc_type = entry.get("disclosure_type", "유상증자결정")
+        retries_so_far = entry.get("retries", 1)
 
-        if new_fv is not None and existing_fv is not None:
-            entries[rcept_no] = _build_resolved_entry(
-                rcept_no, corp_code, new_fv, existing_fv,
-                retries=entry.get("retries", 1),
-            )
-        else:
-            retries = entry.get("retries", 1) + 1
-            entries[rcept_no] = _build_failure_entry(rcept_no, corp_code, retries)
+        if disc_type == "유상증자결정":
+            new_fv = _fetch_piic_face_value(api_key, corp_code, rcept_no, rcept_dt)
+            existing_fv = _get_existing_face_value(api_key, corp_code, cache, today) if new_fv is not None else None
+            if new_fv is not None and existing_fv is not None:
+                entries[rcept_no] = _build_resolved_entry(
+                    rcept_no, corp_code, new_fv, existing_fv,
+                    retries=retries_so_far,
+                )
+            else:
+                entries[rcept_no] = _build_failure_entry(rcept_no, corp_code, retries_so_far + 1)
+        elif disc_type in SCHEDULE_FETCHERS:
+            fetcher = SCHEDULE_FETCHERS[disc_type]
+            result = fetcher(api_key, corp_code, rcept_no, rcept_dt)
+            if result is not None:
+                entries[rcept_no] = _build_schedule_resolved_entry(
+                    rcept_no, corp_code, disc_type, result, retries=retries_so_far
+                )
+            else:
+                entries[rcept_no] = _build_schedule_failure_entry(
+                    rcept_no, corp_code, disc_type, retries_so_far + 1
+                )
 
 
 # ============================================================
@@ -430,6 +599,7 @@ def fetch_dart_target_events(api_key: str,
 
             flags: list[str] = []
             face_value_meta: Optional[dict] = None
+            schedule_meta: Optional[dict] = None
             body_suffix = ""
 
             if matched_type == "유상증자결정" and corp_code and rcept_no:
@@ -447,18 +617,27 @@ def fetch_dart_target_events(api_key: str,
                         flags.append("preferred_share_issuance")
                 else:
                     body_suffix = " (※ 신주 액면가 조회 실패 — 다음 수집 시 재시도)"
+            elif matched_type in SCHEDULE_FETCHERS and corp_code and rcept_no:
+                sched_data, _status = _enrich_schedule(
+                    api_key, corp_code, rcept_no, rcept_dt, cache, matched_type
+                )
+                if sched_data:
+                    schedule_meta = sched_data
+                else:
+                    body_suffix = " (※ 일정 상세 조회 실패 — 다음 수집 시 재시도)"
 
             base_body = (
                 f"{corp_name} 의 '{report_nm}' DART 공시 접수. "
                 f"배정·상장 등 세부 일정은 원본 공시 확인."
             )
+            disclosure_url = f"https://dart.fss.or.kr/dsaf001/main.do?rcpNo={rcept_no}"
             hits.append({
                 "type": "DISCLOSURE",
                 "event_date": rcept_dt.isoformat(),
                 "event_date_label": None,
                 "title": f"{corp_name} · {matched_type}",
                 "body_snippet": base_body + body_suffix,
-                "source_url": f"https://dart.fss.or.kr/dsaf001/main.do?rcpNo={rcept_no}",
+                "source_url": disclosure_url,
                 "source_label": "DART 공시",
                 "news": None,
                 "category_hints": [],
@@ -468,9 +647,90 @@ def fetch_dart_target_events(api_key: str,
                 "stock_code": stock_code,
                 "flags": flags,
                 "face_value_meta": face_value_meta,
+                "schedule_meta": schedule_meta,
             })
+
+            if schedule_meta:
+                hits.extend(_build_future_events(
+                    matched_type, schedule_meta, today, rcept_dt,
+                    corp_name, stock_code, direction_tag, disclosure_url, report_nm,
+                ))
         if len(items) < 100:
             break
 
     _save_detail_cache(cache)
     return hits
+
+
+def _build_future_events(matched_type: str, schedule_meta: dict, today: date,
+                         rcept_dt: date, corp_name: str, stock_code: Optional[str],
+                         direction_tag: str, disclosure_url: str,
+                         report_nm: str) -> list[dict]:
+    """무상증자/자사주취득의 미래 일정을 캘린더 이벤트로 변환.
+
+    오늘 이후 일정만 추가한다 (과거 일정은 캘린더 노이즈).
+    """
+    events: list[dict] = []
+    if matched_type == "무상증자결정":
+        future_date_iso = schedule_meta.get("asstn_stdde") or schedule_meta.get("lstg_pln_de")
+        label_kind = "신주배정기준일" if schedule_meta.get("asstn_stdde") else "신주상장예정일"
+        if future_date_iso:
+            future_dt = _safe_iso_to_date(future_date_iso)
+            if future_dt and future_dt > today:
+                events.append({
+                    "type": "DISCLOSURE",
+                    "event_date": future_dt.isoformat(),
+                    "event_date_label": label_kind,
+                    "title": f"{corp_name} · 무상증자 {label_kind}",
+                    "body_snippet": (
+                        f"{corp_name} '{report_nm}' 의 {label_kind}. "
+                        f"공시 접수일: {rcept_dt.isoformat()}."
+                    ),
+                    "source_url": disclosure_url,
+                    "source_label": "DART 공시",
+                    "news": None,
+                    "category_hints": [],
+                    "disclosure_type": matched_type,
+                    "direction": direction_tag,
+                    "stock_name_hint": corp_name,
+                    "stock_code": stock_code,
+                    "flags": ["future_schedule"],
+                    "face_value_meta": None,
+                    "schedule_meta": schedule_meta,
+                })
+    elif matched_type == "자기주식취득결정":
+        future_date_iso = schedule_meta.get("aqexpd_bgd")
+        if future_date_iso:
+            future_dt = _safe_iso_to_date(future_date_iso)
+            if future_dt and future_dt > today:
+                end_iso = schedule_meta.get("aqexpd_edd")
+                end_suffix = f" (종료 예정: {end_iso})" if end_iso else ""
+                events.append({
+                    "type": "DISCLOSURE",
+                    "event_date": future_dt.isoformat(),
+                    "event_date_label": "자사주 취득 시작",
+                    "title": f"{corp_name} · 자사주 취득 시작",
+                    "body_snippet": (
+                        f"{corp_name} '{report_nm}' 의 취득예상기간 시작일.{end_suffix} "
+                        f"공시 접수일: {rcept_dt.isoformat()}."
+                    ),
+                    "source_url": disclosure_url,
+                    "source_label": "DART 공시",
+                    "news": None,
+                    "category_hints": [],
+                    "disclosure_type": matched_type,
+                    "direction": direction_tag,
+                    "stock_name_hint": corp_name,
+                    "stock_code": stock_code,
+                    "flags": ["future_schedule"],
+                    "face_value_meta": None,
+                    "schedule_meta": schedule_meta,
+                })
+    return events
+
+
+def _safe_iso_to_date(s: str) -> Optional[date]:
+    try:
+        return date.fromisoformat(s)
+    except (ValueError, TypeError):
+        return None
