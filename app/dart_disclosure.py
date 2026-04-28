@@ -23,7 +23,7 @@ import requests
 DART_LIST_URL = "https://opendart.fss.or.kr/api/list.json"
 DART_PIIC_URL = "https://opendart.fss.or.kr/api/piicDecsn.json"
 DART_STOCK_TOTQY_URL = "https://opendart.fss.or.kr/api/stockTotqyItr.json"
-DART_BONUS_ISSUE_URL = "https://opendart.fss.or.kr/api/bonusIsstDecsn.json"
+DART_BONUS_ISSUE_URL = "https://opendart.fss.or.kr/api/fricDecsn.json"
 DART_TREASURY_AQ_URL = "https://opendart.fss.or.kr/api/tsstkAqDecsn.json"
 
 ENV_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
