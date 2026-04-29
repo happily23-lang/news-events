@@ -165,21 +165,6 @@ def test_fetch_bok_mpc_returns_empty_on_zero_parse_no_cache(tmp_cache_path, mock
 
 
 # ============================================================
-# fetch_kostat_release_schedule
-# ============================================================
-
-def test_kostat_monthly_pattern_per_year(tmp_cache_path):
-    events = bs.fetch_kostat_release_schedule(2026, force_refresh=True)
-    # 12 months × 3 categories = 36
-    assert len(events) == 36
-    indicators = {e["_indicator"] for e in events}
-    assert indicators == {"cpi", "employment", "ip"}
-    cpi_events = [e for e in events if e["_indicator"] == "cpi"]
-    assert all("fomc" in e["category_hints"] and "fx" in e["category_hints"]
-               for e in cpi_events)
-
-
-# ============================================================
 # get_macro_events orchestration
 # ============================================================
 
@@ -232,17 +217,9 @@ def test_get_macro_events_falls_back_to_hardcoded_when_scraper_fails(
     assert not any("한국은행 금융통화위원회" in t for t in titles)
 
 
-def test_get_macro_events_distinguishes_us_kr_cpi(tmp_cache_path, mock_get):
-    """미국 CPI(hardcoded) 와 통계청 CPI(KOSTAT pattern) 가 둘 다 살아남아야."""
+def test_get_macro_events_us_cpi_present(tmp_cache_path, mock_get):
+    """미국 CPI(hardcoded) 가 살아남아야."""
     mock_get.return_value = _resp(_BOK_HTML_2026)
     events = bs.get_macro_events(today=date(2026, 4, 25), window_days=20)
     cpi_titles = {e["title"] for e in events if "물가" in e["title"] or "CPI" in e["title"]}
     assert any("미국" in t for t in cpi_titles)
-    assert any("통계청" in t for t in cpi_titles)
-
-
-def test_get_macro_events_kostat_indicator_attached(tmp_cache_path):
-    events = bs.get_macro_events(today=date(2026, 5, 1), window_days=15)
-    cpi = [e for e in events if e.get("_indicator") == "cpi"]
-    assert len(cpi) >= 1
-    assert all(e["type"] == "MACRO" for e in cpi)

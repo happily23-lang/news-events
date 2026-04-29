@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""GitHub Actions cron entry: refresh BOK MPC + KoStat schedule cache."""
+"""GitHub Actions cron entry: refresh BOK MPC schedule cache."""
 import sys
 from datetime import date
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from bok_schedule import fetch_bok_mpc_schedule, fetch_kostat_release_schedule
+from bok_schedule import fetch_bok_mpc_schedule
 
 
 def main() -> int:
@@ -17,16 +17,11 @@ def main() -> int:
     bok = fetch_bok_mpc_schedule(year, force_refresh=True)
     print(f"  -> {len(bok)} BOK MPC events")
 
-    print(f"[{today.isoformat()}] KoStat release schedule refresh ({year})")
-    kostat = fetch_kostat_release_schedule(year, force_refresh=True)
-    print(f"  -> {len(kostat)} KoStat events")
-
     if today.month >= 10:
         nxt = year + 1
         print(f"Last quarter -- also refreshing {nxt}")
         bok_next = fetch_bok_mpc_schedule(nxt, force_refresh=True)
-        kostat_next = fetch_kostat_release_schedule(nxt, force_refresh=True)
-        print(f"  -> {len(bok_next)} BOK MPC + {len(kostat_next)} KoStat events for {nxt}")
+        print(f"  -> {len(bok_next)} BOK MPC events for {nxt}")
 
     return 0
 

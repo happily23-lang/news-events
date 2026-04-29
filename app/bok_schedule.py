@@ -1,10 +1,9 @@
 """
-한국은행 금융통화위원회 일정 + 통계청 공표일정 스크레이퍼.
+한국은행 금융통화위원회 일정 스크레이퍼.
 
 calendar_page.get_hardcoded_macro_events 의 drop-in 대체로 동작.
 - BOK 금통위: live 스크레이프 (URL: crncyPolicyDrcMtg/listYear.do)
-- 통계청 공표일정: live 페이지에서 안정 추출이 안 돼 monthly pattern 기반 hardcoded fallback
-- 둘 다 실패 / 0건이면 calendar_page._MACRO_EVENTS_2026 으로 fallback
+- 실패 / 0건이면 calendar_page._MACRO_EVENTS_2026 으로 fallback
 - TTL 30일 캐시 (`bok_schedule_cache.json`), dart_disclosure 캐시 패턴 그대로 미러
 """
 
@@ -37,23 +36,6 @@ BOK_MPC_TIMEOUT = 15
 # ============================================================
 # 카테고리/지표 매핑 (단위 테스트 가능하도록 모듈 상수)
 # ============================================================
-
-# (indicator_id, category_hints, title) — 통계청 월별 공표일정 fallback 용
-# 실제 발표일은 매월 변동되므로 _kostat_monthly_fallback() 가 월별 추정일 산출.
-KOSTAT_MONTHLY_PATTERN: list[dict] = [
-    # 매월 1~3일: 소비자물가동향 (전월 분)
-    {"indicator": "cpi", "category_hints": ["fomc", "fx"],
-     "title": "통계청 소비자물가동향 발표", "day_of_month": 2,
-     "body": "전월 소비자물가지수(CPI) 공표. 인플레이션 둔화/재반등 방향이 통화정책에 직접 영향."},
-    # 매월 중순: 고용동향
-    {"indicator": "employment", "category_hints": ["fomc"],
-     "title": "통계청 고용동향 발표", "day_of_month": 14,
-     "body": "전월 고용동향 공표. 실업률·취업자 수 변동이 노동시장 강도 시그널."},
-    # 매월 말: 산업활동동향
-    {"indicator": "ip", "category_hints": ["fomc"],
-     "title": "통계청 산업활동동향 발표", "day_of_month": 30,
-     "body": "전월 산업활동동향 공표. 광공업생산·서비스업생산·소매판매 종합 지표."},
-]
 
 # canonical_title 매핑 — dedupe 키 생성. 스크레이프와 hardcoded 가 같은 행사를 가리킬 때 충돌 방지.
 # 순서 중요: 더 구체적인 패턴(미국/한국 구분)을 먼저 두고 모호한 fallback 은 뒤에.
@@ -239,62 +221,6 @@ def fetch_bok_mpc_schedule(year: int, *, force_refresh: bool = False,
 
 
 # ============================================================
-# 통계청 공표일정 — monthly pattern fallback
-# ============================================================
-
-def _kostat_monthly_fallback(year: int) -> list[dict]:
-    """통계청 발표는 라이브 캘린더 추출이 불안정해 monthly pattern 으로 추정.
-
-    각 항목은 day_of_month 에 발표 (휴일이면 다음 영업일이지만 그 정확도까지는 불요).
-    실제 발표 페이지에서 확정 일정 가져오는 스크레이퍼는 V5 확정 후 추가.
-    """
-    out: list[dict] = []
-    for month in range(1, 13):
-        for spec in KOSTAT_MONTHLY_PATTERN:
-            day = spec["day_of_month"]
-            try:
-                ev_date = date(year, month, min(day, 28))
-            except ValueError:
-                continue
-            out.append({
-                "type": "MACRO",
-                "event_date": ev_date.isoformat(),
-                "title": spec["title"],
-                "body_snippet": spec["body"],
-                "source_url": "https://kostat.go.kr/menu.es?mid=a10301010000",
-                "source_label": "통계청 공표일정 (예상)",
-                "category_hints": list(spec["category_hints"]),
-                "direction": "neutral",
-                "_origin": "kostat_pattern",
-                "_indicator": spec["indicator"],
-            })
-    return out
-
-
-def fetch_kostat_release_schedule(year: int, *, force_refresh: bool = False) -> list[dict]:
-    """통계청 공표일정. 현재는 monthly pattern fallback 만 반환.
-
-    추후 V5 확정 시 실제 페이지 스크레이프로 교체 예정. 인터페이스는 호환 유지.
-    """
-    cache = _load_cache()
-    cache_key = f"kostat_{year}"
-    cached = cache["by_source"].get(cache_key)
-    if not force_refresh and cached and _is_fresh(cached.get("fetched_at")):
-        return cached.get("events", [])
-
-    events = _kostat_monthly_fallback(year)
-    cache["by_source"][cache_key] = {
-        "fetched_at": date.today().isoformat(),
-        "events": events,
-    }
-    try:
-        _save_cache(cache)
-    except OSError:
-        pass
-    return events
-
-
-# ============================================================
 # 공개 API — calendar_page.get_hardcoded_macro_events 의 drop-in 대체
 # ============================================================
 
@@ -304,8 +230,7 @@ def get_macro_events(today: Optional[date] = None,
 
     소스 우선순위 (dedupe 시 앞쪽 우선):
     1. 한은 금통위 스크레이프 (`fetch_bok_mpc_schedule`)
-    2. 통계청 monthly pattern (`fetch_kostat_release_schedule`)
-    3. calendar_page._MACRO_EVENTS_2026 하드코딩 (fallback)
+    2. calendar_page._MACRO_EVENTS_2026 하드코딩 (fallback)
 
     스크레이프 실패해도 fallback 으로 항상 무엇인가 반환.
     """
@@ -321,7 +246,6 @@ def get_macro_events(today: Optional[date] = None,
     scraped: list[dict] = []
     for y in years:
         scraped.extend(fetch_bok_mpc_schedule(y))
-        scraped.extend(fetch_kostat_release_schedule(y))
 
     # 기존 hardcoded fallback (절대로 삭제하지 않음 — 스크레이퍼 망가져도 최소 보장)
     try:
