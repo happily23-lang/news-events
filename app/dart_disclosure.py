@@ -742,8 +742,51 @@ def fetch_dart_target_events(api_key: str,
         if len(items) < 100:
             break
 
+    hits = _dedup_corrections(hits)
     _save_detail_cache(cache)
     return hits
+
+
+def _dedup_corrections(hits: list[dict]) -> list[dict]:
+    """Drop older filings superseded by 정정공시 ([기재정정]) within the same window.
+
+    DART issues a separate rcept_no for each amendment of a previously filed
+    report. Within a short window the original and one or more [기재정정]
+    versions all match the same disclosure type for the same company —
+    keeping all of them produces visible duplicates on the calendar.
+
+    Heuristic: group all *receipt* events (those without 'future_schedule')
+    by (stock_code or corp_name, disclosure_type). Within each group, keep
+    only the entry with the latest event_date (i.e. latest rcept_dt) —
+    earlier entries are treated as superseded. Future-schedule events are
+    then filtered to keep only those whose source_url (= rcept_no) survived.
+    """
+    if len(hits) <= 1:
+        return hits
+
+    receipts: list[dict] = []
+    futures: list[dict] = []
+    for h in hits:
+        if "future_schedule" in (h.get("flags") or []):
+            futures.append(h)
+        else:
+            receipts.append(h)
+
+    # Group receipts by (stock identity, disclosure type), keep latest event_date.
+    by_group: dict[tuple, dict] = {}
+    for r in receipts:
+        identity = r.get("stock_code") or r.get("stock_name_hint") or ""
+        key = (identity, r.get("disclosure_type") or "")
+        cur = by_group.get(key)
+        if cur is None or (r.get("event_date") or "") > (cur.get("event_date") or ""):
+            by_group[key] = r
+
+    surviving_urls = {r.get("source_url") for r in by_group.values()}
+    surviving_receipts = list(by_group.values())
+    surviving_futures = [
+        f for f in futures if f.get("source_url") in surviving_urls
+    ]
+    return surviving_receipts + surviving_futures
 
 
 def _build_future_events(matched_type: str, schedule_meta: dict, today: date,
