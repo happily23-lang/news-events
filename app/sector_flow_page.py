@@ -283,7 +283,8 @@ def _render_card(flow: dict, events: list[dict]) -> str:
     def _stock_rows(items: list[dict]) -> str:
         return "".join(
             f'<div class="stock-row">'
-            f'<span class="stock-name">{_html_lib.escape(s["name"])}</span>'
+            f'<a class="stock-name" href="https://finance.naver.com/item/main.naver?code={_html_lib.escape(s["code"])}" '
+            f'target="_blank" rel="noopener">{_html_lib.escape(s["name"])}</a>'
             f'<span class="stock-val">{_format_eok(s["net_value"])}</span>'
             f"</div>"
             for s in items
@@ -329,10 +330,38 @@ def _render_card(flow: dict, events: list[dict]) -> str:
     )
 
 
+def _freshness_note(data_date: str | None, generated_at: str | None = None) -> str:
+    """Return the human-readable freshness banner shown above the grid.
+
+    Three states based on data_date and current local (KST) time:
+      - data_date < today                        → "{data_date} 마감 확정 기준"
+      - data_date == today and now < 16:00 KST   → "오늘 장중 잠정값"
+      - data_date == today and now >= 16:00 KST  → "오늘({data_date}) 마감 확정 기준"
+    """
+    from datetime import timezone, timedelta as _td
+    kst = timezone(_td(hours=9))
+    now_kst = datetime.now(kst)
+    today_iso = now_kst.date().isoformat()
+    gen_label = f" · 페이지 빌드 {generated_at}" if generated_at else ""
+    if not data_date:
+        return f"※ 수급 데이터를 불러오지 못했습니다.{gen_label}"
+    if data_date == today_iso:
+        # KST settlement watershed ~ 16:00 (장 마감 15:30 + 정산 buffer 30m)
+        if now_kst.hour < 16:
+            return (
+                f"📡 <b>오늘({data_date}) 장중 잠정값</b> · 외인·기관 매매는 장 마감 후 정산되며, "
+                f"잠정값은 변동될 수 있습니다.{gen_label}"
+            )
+        return f"📊 <b>오늘({data_date}) 마감 확정 기준</b> · 한국거래소 외인·기관 순매수.{gen_label}"
+    return f"📊 <b>{data_date} 마감 확정 기준</b> · 한국거래소 외인·기관 순매수.{gen_label}"
+
+
 def render_sector_flow_html(
     flows_by_window: dict[int, list[dict]],
     events_by_sector: dict[str, list[dict]],
     as_of: str,
+    data_date: str | None = None,
+    generated_at: str | None = None,
 ) -> str:
     """Render the dashboard. flows_by_window keys = 1, 5."""
     cards_5 = "\n".join(
@@ -377,6 +406,11 @@ def render_sector_flow_html(
     background:#fff; cursor:pointer; font-size:13px; color:var(--muted);
   }}
   .toolbar button.active {{ background:var(--accent); color:#fff; border-color:var(--accent); }}
+  .meta-note {{
+    margin:-8px 0 18px; padding:8px 12px; background:#fffbe6;
+    border:1px solid #f5e6a8; border-radius:6px;
+    font-size:12px; color:#7a5b00;
+  }}
   .grid {{
     display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); gap:14px;
   }}
@@ -423,9 +457,10 @@ def render_sector_flow_html(
   .stocks-grid {{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px; }}
   .stock-block {{ font-size:12.5px; }}
   .stock-head {{ font-weight:600; margin-bottom:3px; }}
-  .stock-row {{ display:flex; justify-content:space-between; padding:1px 0; }}
-  .stock-name {{ color:var(--text); }}
-  .stock-val {{ font-variant-numeric:tabular-nums; color:var(--muted); }}
+  .stock-row {{ display:flex; justify-content:space-between; padding:1px 0; gap:6px; }}
+  .stock-name {{ color:var(--text); text-decoration:none; }}
+  .stock-name:hover {{ color:var(--accent); text-decoration:underline; }}
+  .stock-val {{ font-variant-numeric:tabular-nums; color:var(--muted); flex-shrink:0; }}
   .empty {{
     text-align:center; padding:60px 20px; color:var(--muted);
     background:var(--card); border:1px dashed var(--border); border-radius:12px;
@@ -444,11 +479,12 @@ def render_sector_flow_html(
     <div class="page-meta">데이터 기준일: {_html_lib.escape(as_of)} · 외인 + 기관 합산 · 다가올 카탈리스트 +14일</div>
   </header>
   <div class="toolbar">
-    <button class="active" data-window="5">5일 누적</button>
-    <button data-window="1">1일</button>
+    <button class="active" data-window="1">1일</button>
+    <button data-window="5">5일 누적</button>
   </div>
-  <div id="grid-5" class="grid grid-deck">{cards_5 or '<div class="empty">5일 데이터가 없습니다.</div>'}</div>
-  <div id="grid-1" class="grid grid-deck hidden">{cards_1 or '<div class="empty">1일 데이터가 없습니다.</div>'}</div>
+  <div class="meta-note">{_freshness_note(data_date, generated_at)}</div>
+  <div id="grid-1" class="grid grid-deck">{cards_1 or '<div class="empty">1일 데이터가 없습니다.</div>'}</div>
+  <div id="grid-5" class="grid grid-deck hidden">{cards_5 or '<div class="empty">5일 데이터가 없습니다.</div>'}</div>
 </div>
 <script>
 window.__SECTOR_FLOW__ = {embedded};
@@ -474,6 +510,27 @@ def _latest_as_of(supply_cache: dict) -> str:
     return max(dates) if dates else date.today().isoformat()
 
 
+def _latest_market_data_date(supply_cache: dict, as_of: str) -> str | None:
+    """Find the newest rows[0].date across cache entries for the given as_of.
+
+    rows[] is newest-first. The first row's date is the latest market data
+    captured at the time the cache was written — which may be today (intraday
+    or post-close run) or the previous trading day (early morning run).
+    """
+    suffix = f"|{as_of}|"
+    latest: str | None = None
+    for k, v in supply_cache.items():
+        if not isinstance(k, str) or suffix not in k:
+            continue
+        rows = (v or {}).get("rows") or []
+        if not rows:
+            continue
+        d = rows[0].get("date")
+        if d and (latest is None or d > latest):
+            latest = d
+    return latest
+
+
 def build_sector_flow_page(
     out_path: Path | str,
     supply_cache_path: Path | str,
@@ -496,10 +553,19 @@ def build_sector_flow_page(
     flows_1 = aggregate_sector_flows(supply, sector_map, name_map, window=1, as_of=as_of)
     events_by_sector = group_events_by_sector(calendar_events or [], sector_map)
 
+    # Latest market data date — find the newest rows[0].date in the supply cache
+    # (intraday runs see today; morning/EOD runs see the previous trading day).
+    data_date = _latest_market_data_date(supply, as_of)
+    from datetime import timezone, timedelta as _td
+    kst = timezone(_td(hours=9))
+    generated_at = datetime.now(kst).strftime("%Y-%m-%d %H:%M KST")
+
     html = render_sector_flow_html(
         flows_by_window={1: flows_1, 5: flows_5},
         events_by_sector=events_by_sector,
         as_of=as_of,
+        data_date=data_date,
+        generated_at=generated_at,
     )
     Path(out_path).write_text(html, encoding="utf-8")
     return html

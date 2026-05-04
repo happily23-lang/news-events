@@ -4,6 +4,11 @@ on:
   schedule:
     # 23:00 UTC Sun-Thu = 08:00 KST weekdays (morning refresh of prior trading day)
     - cron: '0 23 * * 0-4'
+    # Intraday provisional captures during market session (09:00 ~ 15:30 KST):
+    # 01:00 UTC = 10:00 KST, 03:00 UTC = 12:00 KST, 05:00 UTC = 14:00 KST.
+    - cron: '0 1 * * 1-5'
+    - cron: '0 3 * * 1-5'
+    - cron: '0 5 * * 1-5'
     # 10:00 UTC Mon-Fri = 19:00 KST weekdays (after market close + data settlement)
     - cron: '0 10 * * 1-5'
   workflow_dispatch: {}
@@ -37,6 +42,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
           if git diff --quiet -- app/naver_supply_cache.json; then
             echo "No cache changes."
           else
