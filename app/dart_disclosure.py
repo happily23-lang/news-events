@@ -22,9 +22,11 @@ import requests
 
 DART_LIST_URL = "https://opendart.fss.or.kr/api/list.json"
 DART_PIIC_URL = "https://opendart.fss.or.kr/api/piicDecsn.json"
-DART_STOCK_TOTQY_URL = "https://opendart.fss.or.kr/api/stockTotqyItr.json"
+DART_STOCK_TOTQY_URL = "https://opendart.fss.or.kr/api/stockTotqySttus.json"
 DART_BONUS_ISSUE_URL = "https://opendart.fss.or.kr/api/fricDecsn.json"
 DART_TREASURY_AQ_URL = "https://opendart.fss.or.kr/api/tsstkAqDecsn.json"
+DART_CB_URL = "https://opendart.fss.or.kr/api/cvbdIsDecsn.json"
+DART_BW_URL = "https://opendart.fss.or.kr/api/bdwtIsDecsn.json"
 
 ENV_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
 CACHE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dart_detail_cache.json")
@@ -85,12 +87,16 @@ def _parse_rcept_dt(s: str) -> Optional[date]:
 
 
 def _parse_dart_date(raw) -> Optional[date]:
-    """DART 일정 필드 파싱. 'YYYY-MM-DD', 'YYYYMMDD', 'YYYY.MM.DD' 등 다양한 포맷 대응."""
+    """DART 일정 필드 파싱. 'YYYY-MM-DD', 'YYYYMMDD', 'YYYY.MM.DD',
+    'YYYY년 MM월 DD일' 등 다양한 포맷 대응."""
     if raw is None:
         return None
     s = str(raw).strip()
     if not s or s == "-":
         return None
+    if "년" in s and "월" in s:
+        s = s.replace("년", "-").replace("월", "-").replace("일", "").replace(" ", "")
+        s = s.rstrip("-")
     try:
         return date.fromisoformat(s)
     except ValueError:
@@ -100,9 +106,9 @@ def _parse_dart_date(raw) -> Optional[date]:
             return date(int(s[:4]), int(s[4:6]), int(s[6:8]))
         except ValueError:
             return None
-    for sep in (".", "/", " "):
+    for sep in (".", "/", " ", "-"):
         if sep in s:
-            parts = s.replace(sep, "-").split("-")
+            parts = [p for p in s.replace(sep, "-").split("-") if p]
             if len(parts) == 3:
                 try:
                     return date(int(parts[0]), int(parts[1]), int(parts[2]))
@@ -195,15 +201,28 @@ def _purge_stale_resolved(cache: dict, now: datetime) -> None:
 
 def _http_get_json(url: str, params: dict, timeout: int = 15) -> Optional[dict]:
     """status=='000' 이면 JSON dict, 아니면 None. 에러 처리 중앙화."""
+    debug = os.environ.get("DART_DEBUG") == "1"
     try:
         r = requests.get(url, params=params, timeout=timeout)
-    except requests.RequestException:
+    except requests.RequestException as e:
+        if debug:
+            print(f"[dart] {url.rsplit('/', 1)[-1]} RequestException: {e}", file=__import__('sys').stderr)
         return None
+    if debug and r.status_code != 200:
+        print(f"[dart] {url.rsplit('/', 1)[-1]} HTTP {r.status_code}", file=__import__('sys').stderr)
     try:
         data = r.json()
     except ValueError:
+        if debug:
+            print(f"[dart] {url.rsplit('/', 1)[-1]} non-JSON body: {r.text[:200]!r}", file=__import__('sys').stderr)
         return None
     if data.get("status") != "000":
+        if debug:
+            print(
+                f"[dart] {url.rsplit('/', 1)[-1]} status={data.get('status')} msg={data.get('message')!r} "
+                f"params={ {k: v for k, v in params.items() if k != 'crtfc_key'} }",
+                file=__import__('sys').stderr,
+            )
         return None
     return data
 
@@ -358,9 +377,67 @@ def _fetch_treasury_acquisition_schedule(api_key: str, corp_code: str, rcept_no:
     }
 
 
+def _fetch_cb_schedule(api_key: str, corp_code: str, rcept_no: str,
+                       rcept_dt: date) -> Optional[dict]:
+    """전환사채권발행결정 detail 에서 납입일·전환청구기간 추출."""
+    de = rcept_dt.strftime("%Y%m%d")
+    data = _http_get_json(DART_CB_URL, {
+        "crtfc_key": api_key,
+        "corp_code": corp_code,
+        "bgn_de": de,
+        "end_de": de,
+    })
+    if not data:
+        return None
+    rows = data.get("list", [])
+    matched = next((r for r in rows if r.get("rcept_no") == rcept_no), None)
+    if not matched:
+        return None
+    pymd = _parse_dart_date(matched.get("pymd"))
+    cv_bgd = _parse_dart_date(matched.get("cvrqpd_bgd"))
+    cv_edd = _parse_dart_date(matched.get("cvrqpd_edd"))
+    if pymd is None and cv_bgd is None:
+        return None
+    return {
+        "pymd": pymd.isoformat() if pymd else None,
+        "cvrqpd_bgd": cv_bgd.isoformat() if cv_bgd else None,
+        "cvrqpd_edd": cv_edd.isoformat() if cv_edd else None,
+    }
+
+
+def _fetch_bw_schedule(api_key: str, corp_code: str, rcept_no: str,
+                       rcept_dt: date) -> Optional[dict]:
+    """신주인수권부사채권발행결정 detail 에서 납입일·행사기간 추출."""
+    de = rcept_dt.strftime("%Y%m%d")
+    data = _http_get_json(DART_BW_URL, {
+        "crtfc_key": api_key,
+        "corp_code": corp_code,
+        "bgn_de": de,
+        "end_de": de,
+    })
+    if not data:
+        return None
+    rows = data.get("list", [])
+    matched = next((r for r in rows if r.get("rcept_no") == rcept_no), None)
+    if not matched:
+        return None
+    pymd = _parse_dart_date(matched.get("pymd"))
+    ex_bgd = _parse_dart_date(matched.get("expd_bgd"))
+    ex_edd = _parse_dart_date(matched.get("expd_edd"))
+    if pymd is None and ex_bgd is None:
+        return None
+    return {
+        "pymd": pymd.isoformat() if pymd else None,
+        "expd_bgd": ex_bgd.isoformat() if ex_bgd else None,
+        "expd_edd": ex_edd.isoformat() if ex_edd else None,
+    }
+
+
 SCHEDULE_FETCHERS = {
     "무상증자결정": _fetch_bonus_issuance_schedule,
     "자기주식취득결정": _fetch_treasury_acquisition_schedule,
+    "전환사채권발행결정": _fetch_cb_schedule,
+    "신주인수권부사채권발행결정": _fetch_bw_schedule,
 }
 
 
@@ -569,6 +646,7 @@ def fetch_dart_target_events(api_key: str,
     _retry_pending_entries(cache, api_key, today)
 
     hits: list[dict] = []
+    seen_rcept_nos: set[str] = set()
     for page_no in range(1, max_pages + 1):
         data = _http_get_json(DART_LIST_URL, {
             "crtfc_key": api_key,
@@ -593,6 +671,12 @@ def fetch_dart_target_events(api_key: str,
             if rcept_dt is None:
                 continue
             rcept_no = it.get("rcept_no", "")
+            if rcept_no and rcept_no in seen_rcept_nos:
+                # Same filing can appear on multiple pages (DART list.json
+                # ordering can shift while paginating); skip the second hit.
+                continue
+            if rcept_no:
+                seen_rcept_nos.add(rcept_no)
             corp_code = (it.get("corp_code") or "").strip()
             corp_name = it.get("corp_name", "")
             stock_code = (it.get("stock_code") or "").strip() or None
@@ -726,6 +810,55 @@ def _build_future_events(matched_type: str, schedule_meta: dict, today: date,
                     "face_value_meta": None,
                     "schedule_meta": schedule_meta,
                 })
+    elif matched_type == "전환사채권발행결정":
+        events.extend(_emit_pair_events(
+            schedule_meta, today, rcept_dt, corp_name, stock_code,
+            direction_tag, disclosure_url, report_nm, matched_type,
+            primary_field="pymd", primary_label="CB 납입일",
+            secondary_field="cvrqpd_bgd", secondary_label="CB 전환청구 시작",
+        ))
+    elif matched_type == "신주인수권부사채권발행결정":
+        events.extend(_emit_pair_events(
+            schedule_meta, today, rcept_dt, corp_name, stock_code,
+            direction_tag, disclosure_url, report_nm, matched_type,
+            primary_field="pymd", primary_label="BW 납입일",
+            secondary_field="expd_bgd", secondary_label="BW 신주인수권 행사 시작",
+        ))
+    return events
+
+
+def _emit_pair_events(schedule_meta: dict, today: date, rcept_dt: date,
+                      corp_name: str, stock_code: Optional[str], direction_tag: str,
+                      disclosure_url: str, report_nm: str, matched_type: str,
+                      primary_field: str, primary_label: str,
+                      secondary_field: str, secondary_label: str) -> list[dict]:
+    """schedule_meta 의 두 미래 일정 필드를 각각 캘린더 이벤트로 emit."""
+    events: list[dict] = []
+    for field, label in ((primary_field, primary_label), (secondary_field, secondary_label)):
+        iso = schedule_meta.get(field)
+        future_dt = _safe_iso_to_date(iso) if iso else None
+        if not future_dt or future_dt <= today:
+            continue
+        events.append({
+            "type": "DISCLOSURE",
+            "event_date": future_dt.isoformat(),
+            "event_date_label": label,
+            "title": f"{corp_name} · {label}",
+            "body_snippet": (
+                f"{corp_name} '{report_nm}'. 공시 접수일: {rcept_dt.isoformat()}."
+            ),
+            "source_url": disclosure_url,
+            "source_label": "DART 공시",
+            "news": None,
+            "category_hints": [],
+            "disclosure_type": matched_type,
+            "direction": direction_tag,
+            "stock_name_hint": corp_name,
+            "stock_code": stock_code,
+            "flags": ["future_schedule"],
+            "face_value_meta": None,
+            "schedule_meta": schedule_meta,
+        })
     return events
 
 
