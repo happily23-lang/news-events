@@ -1645,6 +1645,26 @@
       "rcept_no": "20260430001790",
       "corp_code": "01026616",
       "disclosure_type": "유상증자결정",
+      "status": "resolved_unknown",
+      "fetched_at": "2026-05-04T04:12:47.840479+00:00",
+      "retries": 2,
+      "last_error": "fetch_failed",
+      "data": null
+    },
+    "20260504000104": {
+      "rcept_no": "20260504000104",
+      "corp_code": "00115065",
+      "disclosure_type": "자기주식취득결정",
+      "status": "pending_retry",
+      "fetched_at": null,
+      "retries": 1,
+      "last_error": "fetch_failed",
+      "data": null
+    },
+    "20260504000041": {
+      "rcept_no": "20260504000041",
+      "corp_code": "00115065",
+      "disclosure_type": "자기주식취득결정",
       "status": "pending_retry",
       "fetched_at": null,
       "retries": 1,
