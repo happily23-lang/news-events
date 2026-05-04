@@ -1,0 +1,45 @@
+name: KRX Sector Cron
+
+on:
+  schedule:
+    # Weekly Monday 21:00 UTC = Tuesday 06:00 KST
+    - cron: '0 21 * * 1'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: krx-sector
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Refresh KRX sector cache
+        run: python app/run_sector.py
+
+      - name: Commit cache changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          if git diff --quiet -- app/krx_sector_cache.json; then
+            echo "No cache changes."
+          else
+            git add app/krx_sector_cache.json
+            git commit -m "chore(sector): refresh KRX sector cache [skip ci]"
+            git push
+          fi

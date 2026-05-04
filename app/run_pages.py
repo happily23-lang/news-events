@@ -79,13 +79,22 @@ def main() -> int:
     )
     print(f"  total events {len(cal_events)}")
 
-    dart_events = [e for e in cal_events if e.get("type") == "DISCLOSURE"]
-    upcoming_events = [e for e in cal_events if e.get("type") != "DISCLOSURE"]
+    def _is_future_schedule(ev: dict) -> bool:
+        return "future_schedule" in (ev.get("flags") or [])
 
-    print(f"[Page 2] DART disclosures ({len(dart_events)})...")
+    # DART 페이지: 접수된 공시 (과거 14일) + 미래 일정
+    dart_events = [e for e in cal_events if e.get("type") == "DISCLOSURE"]
+    # 캘린더 페이지: 비-DART 미래 이벤트 + DART 미래 일정 (future_schedule)
+    upcoming_events = [
+        e for e in cal_events
+        if e.get("type") != "DISCLOSURE" or _is_future_schedule(e)
+    ]
+
+    dart_future_count = sum(1 for e in dart_events if _is_future_schedule(e))
+    print(f"[Page 2] DART disclosures ({len(dart_events)}, 미래 {dart_future_count})...")
     dart_html = render_calendar_html(
         dart_events, page_title="다트공시", page_icon="📋",
-        page_subtitle="최근 14일 접수분",
+        page_subtitle=f"최근 14일 접수분 + 미래 일정 {dart_future_count}건",
     )
     dart_html = inject_nav(dart_html, active="dart")
     (OUTDIR / "news_dart.html").write_text(dart_html, encoding="utf-8")
@@ -99,6 +108,25 @@ def main() -> int:
     cal_html = inject_nav(cal_html, active="calendar")
     (OUTDIR / "news_calendar.html").write_text(cal_html, encoding="utf-8")
     print(f"  -> news_calendar.html ({len(cal_html):,} bytes)")
+
+    # [Page 4] Sector money flow (외인·기관 섹터별 합산 + 다가올 카탈리스트)
+    print("[Page 4] sector money flow...")
+    try:
+        from sector_flow_page import build_sector_flow_page
+        sector_name_map = {s["Code"]: s["Name"] for s in stocks}
+        sector_html_path = OUTDIR / "news_sector_flow.html"
+        sector_html = build_sector_flow_page(
+            out_path=sector_html_path,
+            supply_cache_path=Path(__file__).parent / "naver_supply_cache.json",
+            sector_cache_path=Path(__file__).parent / "krx_sector_cache.json",
+            name_map=sector_name_map,
+            calendar_events=cal_events,
+        )
+        sector_html = inject_nav(sector_html, active="sector_flow")
+        sector_html_path.write_text(sector_html, encoding="utf-8")
+        print(f"  -> news_sector_flow.html ({len(sector_html):,} bytes)")
+    except FileNotFoundError as exc:
+        print(f"  WARN: sector flow build skipped — {exc}")
 
     (OUTDIR / "index.html").write_text(REDIRECT_HTML, encoding="utf-8")
     (OUTDIR / ".nojekyll").write_text("")

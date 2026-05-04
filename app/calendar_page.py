@@ -812,7 +812,12 @@ def build_calendar_events(news_items: list[dict],
 
     # 악재 필터: direction == 'negative' 인 이벤트는 캘린더에서 제외
     # (DART 의 유상증자결정·CB·BW 등 희석성 공시)
-    events = [e for e in events if e.get("direction") != "negative"]
+    # 단, future_schedule (CB 납입일·전환청구 시작 등) 은 일정 정보로서 통과.
+    events = [
+        e for e in events
+        if e.get("direction") != "negative"
+        or "future_schedule" in (e.get("flags") or [])
+    ]
 
     # 뉴스 이벤트 중복 제거: 같은 날짜·동일 핵심종목 그룹 내 제목 3-gram Jaccard ≥ 0.55
     # 흡수된 기사는 살아남은 카드의 related_urls 로 부착되어 카드 하단에 노출.
@@ -1021,6 +1026,7 @@ NAV_TEMPLATE = """
       <a href="news_preview.html" class="tab {policy_active}">🚀 정책·이벤트 수혜</a>
       <a href="news_dart.html" class="tab {dart_active}">📋 다트공시</a>
       <a href="news_calendar.html" class="tab {calendar_active}">📅 다가올 캘린더</a>
+      <a href="news_sector_flow.html" class="tab {sector_active}">💰 섹터 자금흐름</a>
     </div>
   </div>
 </nav>
@@ -1065,11 +1071,12 @@ NAV_CSS = """
 
 
 def nav_html(active: str) -> str:
-    """active: 'policy' | 'dart' | 'calendar'"""
+    """active: 'policy' | 'dart' | 'calendar' | 'sector_flow'"""
     return NAV_TEMPLATE.format(
         policy_active="active" if active == "policy" else "",
         dart_active="active" if active == "dart" else "",
         calendar_active="active" if active == "calendar" else "",
+        sector_active="active" if active == "sector_flow" else "",
     )
 
 
