@@ -928,7 +928,8 @@ def _render_month_grid(events_by_date: dict, year: int, month: int, today: date)
     # 날짜 셀
     for day in range(1, days_in_month + 1):
         cell_date = date(year, month, day)
-        weekday = cell_date.weekday()  # 월=0..일=6
+        weekday = cell_date.weekday()
+        date_iso = cell_date.isoformat()
 
         cell_classes = ["cell"]
         if cell_date < today:
@@ -942,14 +943,26 @@ def _render_month_grid(events_by_date: dict, year: int, month: int, today: date)
         elif weekday == 6:
             date_classes.append("sun")
 
-        cell_class_attr = " ".join(cell_classes)
-        date_class_attr = " ".join(date_classes)
+        date_html = f'<div class="{" ".join(date_classes)}">{day}</div>'
 
-        cells.append(
-            f'<div class="{cell_class_attr}">'
-            f'<div class="{date_class_attr}">{day}</div>'
-            f'</div>'
-        )
+        day_events = events_by_date.get(date_iso) or []
+        if day_events:
+            cell_classes.append("has-events")
+            first = day_events[0]
+            icon = first.get("icon") or ""
+            title = _html_escape(first.get("title", ""))
+            head = f'{icon} {title}'.strip()
+            extra = len(day_events) - 1
+            more = f'<br><span class="more">+{extra}건</span>' if extra > 0 else ''
+            events_html = f'<div class="cell-events">{head}{more}</div>'
+            cells.append(
+                f'<a class="{" ".join(cell_classes)}" href="#date-{date_iso}">'
+                f'{date_html}{events_html}</a>'
+            )
+        else:
+            cells.append(
+                f'<div class="{" ".join(cell_classes)}">{date_html}</div>'
+            )
 
     cells_html = "".join(cells)
 

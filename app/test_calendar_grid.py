@@ -71,3 +71,74 @@ def test_saturday_sunday_date_classes():
     # 각 토요일/일요일 5번씩
     assert html.count('class="cell-date sat"') == 5
     assert html.count('class="cell-date sun"') == 5
+
+
+def _make_event(event_date: str, type_: str, title: str, icon: str = "") -> dict:
+    """테스트 fixture 헬퍼."""
+    return {
+        "event_date": event_date,
+        "type": type_,
+        "title": title,
+        "icon": icon,
+    }
+
+
+def test_cell_with_single_event_shows_icon_and_title():
+    """이벤트 1건인 셀: 아이콘 + 제목, '+N건' 없음."""
+    events_by_date = {
+        "2026-05-12": [_make_event("2026-05-12", "MACRO", "5월 FOMC", "🌐")],
+    }
+    today = date(2026, 5, 6)
+    html = _render_month_grid(events_by_date, 2026, 5, today)
+    assert "🌐 5월 FOMC" in html
+    # +N건은 0건이라 안 나타남
+    assert "+1건" not in html
+
+
+def test_cell_with_multiple_events_shows_first_and_more_count():
+    """이벤트 3건인 셀: 첫 건 표시 + '+2건'."""
+    events_by_date = {
+        "2026-05-12": [
+            _make_event("2026-05-12", "MACRO", "5월 FOMC", "🌐"),
+            _make_event("2026-05-12", "NEWS_FUTURE", "삼성 실적", "📰"),
+            _make_event("2026-05-12", "NEWS_FUTURE", "현대 IR", "📰"),
+        ],
+    }
+    today = date(2026, 5, 6)
+    html = _render_month_grid(events_by_date, 2026, 5, today)
+    assert "🌐 5월 FOMC" in html
+    assert "+2건" in html
+
+
+def test_event_cell_is_anchor_link():
+    """이벤트 있는 셀은 <a href="#date-YYYY-MM-DD"> 형태."""
+    events_by_date = {
+        "2026-05-12": [_make_event("2026-05-12", "MACRO", "FOMC", "🌐")],
+    }
+    today = date(2026, 5, 6)
+    html = _render_month_grid(events_by_date, 2026, 5, today)
+    assert 'href="#date-2026-05-12"' in html
+    assert 'class="cell has-events' in html
+
+
+def test_event_cell_today_has_both_today_and_has_events():
+    """오늘 이벤트 있으면: today + has-events 둘 다, 그리고 anchor."""
+    events_by_date = {
+        "2026-05-06": [_make_event("2026-05-06", "MACRO", "한은 금통위", "🏦")],
+    }
+    today = date(2026, 5, 6)
+    html = _render_month_grid(events_by_date, 2026, 5, today)
+    assert 'href="#date-2026-05-06"' in html
+    assert "today" in html
+    assert "has-events" in html
+
+
+def test_html_escape_in_event_title():
+    """제목에 특수문자 들어가면 escape 처리."""
+    events_by_date = {
+        "2026-05-12": [_make_event("2026-05-12", "MACRO", "<script>alert(1)</script>", "🌐")],
+    }
+    today = date(2026, 5, 6)
+    html = _render_month_grid(events_by_date, 2026, 5, today)
+    assert "<script>" not in html
+    assert "&lt;script&gt;" in html
