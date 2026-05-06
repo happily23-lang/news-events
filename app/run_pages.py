@@ -101,6 +101,7 @@ def main() -> int:
     cal_html = render_calendar_html(
         upcoming_events, page_title="다가올 이벤트 캘린더", page_icon="📅",
         page_subtitle="향후 30일",
+        show_month_grid=True, today=today,
     )
     cal_html = inject_nav(cal_html, active="calendar")
     (OUTDIR / "news_calendar.html").write_text(cal_html, encoding="utf-8")

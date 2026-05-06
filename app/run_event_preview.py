@@ -113,6 +113,8 @@ def main():
         page_title="다가올 이벤트 캘린더",
         page_icon="📅",
         page_subtitle="향후 30일",
+        show_month_grid=True,
+        today=today,
     )
     calendar_html = inject_nav(calendar_html, active="calendar")
     with open(CALENDAR_OUT, "w", encoding="utf-8") as f:
