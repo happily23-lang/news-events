@@ -1256,6 +1256,47 @@ def render_calendar_html(events: list[dict],
   .page-meta {{ color:var(--muted); font-size:14px; }}
   .page-meta strong {{ color:var(--text); font-weight:600; }}
 
+  /* === 월간 그리드 === */
+  .month-grid-section {{ margin-bottom:24px; }}
+  .month-grid {{ margin-bottom:16px; }}
+  .grid-month-title {{
+    font-size:18px; font-weight:700; margin:0 0 8px;
+    color:var(--text);
+  }}
+  .grid-header {{
+    display:grid; grid-template-columns:repeat(7, 1fr);
+    font-size:11px; color:var(--muted); padding:6px 0;
+    border-bottom:1px solid var(--border); text-align:center;
+  }}
+  .grid-header span {{ font-weight:600; }}
+  .grid-header .sat {{ color:#2563eb; }}
+  .grid-header .sun {{ color:#dc2626; }}
+  .grid-body {{
+    display:grid; grid-template-columns:repeat(7, 1fr);
+    gap:1px; background:var(--border);
+  }}
+  .cell {{
+    background:var(--card); min-height:64px;
+    padding:4px 6px; font-size:11px;
+    display:block; text-decoration:none; color:inherit;
+  }}
+  .cell-date {{ font-weight:600; color:#555; }}
+  .cell-date.sat {{ color:#2563eb; }}
+  .cell-date.sun {{ color:#dc2626; }}
+  .cell.past {{ background:#f5f5f5; opacity:0.5; }}
+  .cell.empty {{ background:#fafafa; }}
+  .cell.today {{ background:#fff8e1; box-shadow:inset 0 0 0 2px #f59e0b; }}
+  .cell.has-events:hover {{ background:var(--accent-soft); }}
+  .cell-events {{
+    margin-top:2px; line-height:1.3;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }}
+  .cell-events .more {{ color:#888; font-size:10px; }}
+
+  @media (max-width:600px) {{
+    .month-grid-section {{ display:none; }}
+  }}
+
   .date-group {{ margin-bottom:26px; }}
   .date-label {{
     font-size:14px; font-weight:700; color:var(--accent);

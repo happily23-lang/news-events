@@ -186,8 +186,10 @@ def test_render_calendar_html_default_has_no_grid():
     """show_month_grid=False (기본) 일 때 그리드 섹션이 없어야 함."""
     from calendar_page import render_calendar_html
 
-    html = render_calendar_html(events=[])
-    assert "month-grid-section" not in html
+    events = [_make_full_event("2026-05-12", "MACRO", "FOMC")]
+    html = render_calendar_html(events)
+    # CSS rule (.month-grid-section) 은 항상 들어있어도, 실제 <section> 태그는 없어야 함
+    assert '<section class="month-grid-section">' not in html
 
 
 def test_render_calendar_html_with_grid_shows_two_grids():
@@ -200,7 +202,7 @@ def test_render_calendar_html_with_grid_shows_two_grids():
         show_month_grid=True,
         today=date(2026, 5, 6),
     )
-    assert "month-grid-section" in html
+    assert '<section class="month-grid-section">' in html
     assert "2026년 5월" in html
     assert "2026년 6월" in html
 
