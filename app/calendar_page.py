@@ -838,6 +838,15 @@ def build_calendar_events(news_items: list[dict],
 # HTML 렌더
 # ============================================================
 
+_TYPE_ICONS = {
+    "MACRO": "🌐",
+    "NEWS_FUTURE": "📰",
+    "IR": "🏛️",
+    "DISCLOSURE": "📋",
+}
+_DEFAULT_ICON = "📅"
+
+
 def _html_escape(s: str) -> str:
     import html as html_lib
     return html_lib.escape(s or "")
@@ -949,7 +958,7 @@ def _render_month_grid(events_by_date: dict, year: int, month: int, today: date)
         if day_events:
             cell_classes.append("has-events")
             first = day_events[0]
-            icon = first.get("icon") or ""
+            icon = _TYPE_ICONS.get(first.get("type", ""), _DEFAULT_ICON)
             title = _html_escape(first.get("title", ""))
             head = f'{icon} {title}'.strip()
             extra = len(day_events) - 1
@@ -984,9 +993,7 @@ def _render_event_card(event: dict) -> str:
     src_url = event.get("source_url") or ""
     src_label = _html_escape(event.get("source_label") or "")
     event_type = event.get("type", "")
-    type_icon = {
-        "MACRO": "🌐", "NEWS_FUTURE": "📰", "IR": "🏛️", "DISCLOSURE": "📋",
-    }.get(event_type, "📅")
+    type_icon = _TYPE_ICONS.get(event_type, _DEFAULT_ICON)
 
     title_html = (
         f'<a href="{_html_escape(src_url)}" target="_blank" rel="noopener">{title}</a>'
