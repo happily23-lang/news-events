@@ -1171,8 +1171,11 @@ def inject_nav(full_html: str, active: str) -> str:
 def render_calendar_html(events: list[dict],
                          page_title: str = "다가올 이벤트 캘린더",
                          page_icon: str = "📅",
-                         page_subtitle: str = "향후 30일") -> str:
-    today = date.today().isoformat()
+                         page_subtitle: str = "향후 30일",
+                         show_month_grid: bool = False,
+                         today: "date | None" = None) -> str:
+    today_obj = today or date.today()
+    today_iso = today_obj.isoformat()
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
 
     def _render_date_groups(evts: list[dict]) -> str:
@@ -1184,7 +1187,9 @@ def render_calendar_html(events: list[dict],
             label = _html_escape(_format_date_korean(d))
             cards_html = "".join(_render_event_card(e) for e in groups[d])
             sections.append(
-                f'<div class="date-group"><div class="date-label">{label}</div>{cards_html}</div>'
+                f'<div class="date-group" id="date-{d}">'
+                f'<div class="date-label">{label}</div>{cards_html}'
+                f'</div>'
             )
         return "".join(sections)
 
@@ -1206,10 +1211,28 @@ def render_calendar_html(events: list[dict],
             )
         body = main_html + low_html
 
+    if show_month_grid and events:
+        events_by_date: dict[str, list[dict]] = defaultdict(list)
+        type_order = {"MACRO": 0, "NEWS_FUTURE": 1, "DISCLOSURE": 2}
+        for e in events:
+            events_by_date[e["event_date"]].append(e)
+        for d in events_by_date:
+            events_by_date[d].sort(key=lambda x: type_order.get(x.get("type"), 9))
+
+        next_year = today_obj.year + (1 if today_obj.month == 12 else 0)
+        next_month = 1 if today_obj.month == 12 else today_obj.month + 1
+        grid_html = (
+            '<section class="month-grid-section">'
+            + _render_month_grid(dict(events_by_date), today_obj.year, today_obj.month, today_obj)
+            + _render_month_grid(dict(events_by_date), next_year, next_month, today_obj)
+            + '</section>'
+        )
+        body = grid_html + body
+
     return f"""<!DOCTYPE html>
 <html lang="ko"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{page_title} — {today}</title>
+<title>{page_title} — {today_iso}</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='14' y='22' width='72' height='68' rx='10' fill='%23fff' stroke='%230071e3' stroke-width='5'/><rect x='14' y='22' width='72' height='20' rx='10' fill='%230071e3'/><rect x='14' y='34' width='72' height='8' fill='%230071e3'/><circle cx='32' cy='14' r='5' fill='%230071e3'/><circle cx='68' cy='14' r='5' fill='%230071e3'/><circle cx='40' cy='60' r='4' fill='%23222'/><circle cx='60' cy='60' r='4' fill='%23222'/><path d='M40 72 Q50 80 60 72' stroke='%23222' stroke-width='3' fill='none' stroke-linecap='round'/><circle cx='30' cy='68' r='4' fill='%23FF9DB0' opacity='0.7'/><circle cx='70' cy='68' r='4' fill='%23FF9DB0' opacity='0.7'/></svg>">
 <style>
   :root {{
@@ -1407,7 +1430,7 @@ def render_calendar_html(events: list[dict],
   <header class="page-header">
     <h1>{page_icon} {page_title}</h1>
     <div class="page-meta">
-      오늘 <strong>{today}</strong> · {page_subtitle} · 이벤트 <strong>{len(events)}건</strong> · {now}
+      오늘 <strong>{today_iso}</strong> · {page_subtitle} · 이벤트 <strong>{len(events)}건</strong> · {now}
     </div>
   </header>
   {body}

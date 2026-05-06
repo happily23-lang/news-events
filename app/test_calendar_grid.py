@@ -159,3 +159,70 @@ def test_january_2027_grid_renders():
     html = _render_month_grid({}, 2027, 1, today)
     assert len(re.findall(r'class="cell[" ]', html)) == 35
     assert "2027년 1월" in html
+
+
+# ============================================================
+# render_calendar_html 통합 테스트
+# ============================================================
+
+def _make_full_event(event_date: str, type_: str = "MACRO", title: str = "테스트 이벤트") -> dict:
+    """render_calendar_html 호출용 fixture (low_signal/direct_stocks 등 필수 키 포함)."""
+    return {
+        "event_date": event_date,
+        "type": type_,
+        "title": title,
+        "low_signal": False,
+        "direct_stocks": [],
+        "inferred_stocks": [],
+        "matched_categories": [],
+        "body_snippet": "",
+        "source_url": "",
+        "source_label": "",
+        "icon": "",
+    }
+
+
+def test_render_calendar_html_default_has_no_grid():
+    """show_month_grid=False (기본) 일 때 그리드 섹션이 없어야 함."""
+    from calendar_page import render_calendar_html
+
+    html = render_calendar_html(events=[])
+    assert "month-grid-section" not in html
+
+
+def test_render_calendar_html_with_grid_shows_two_grids():
+    """show_month_grid=True 면 그리드 2개 (이번 달 + 다음 달)."""
+    from calendar_page import render_calendar_html
+
+    events = [_make_full_event("2026-05-12", "MACRO", "FOMC")]
+    html = render_calendar_html(
+        events,
+        show_month_grid=True,
+        today=date(2026, 5, 6),
+    )
+    assert "month-grid-section" in html
+    assert "2026년 5월" in html
+    assert "2026년 6월" in html
+
+
+def test_render_calendar_html_grid_in_december_crosses_year():
+    """12월일 때 다음 그리드는 다음 해 1월."""
+    from calendar_page import render_calendar_html
+
+    events = [_make_full_event("2026-12-15", "MACRO", "FOMC")]
+    html = render_calendar_html(
+        events,
+        show_month_grid=True,
+        today=date(2026, 12, 5),
+    )
+    assert "2026년 12월" in html
+    assert "2027년 1월" in html
+
+
+def test_render_calendar_html_date_group_has_id_attribute():
+    """리스트 섹션의 date-group 에 id="date-YYYY-MM-DD" 부여 (anchor target)."""
+    from calendar_page import render_calendar_html
+
+    events = [_make_full_event("2026-05-12", "MACRO", "FOMC")]
+    html = render_calendar_html(events)  # 그리드 안 켜도 id는 부여
+    assert 'id="date-2026-05-12"' in html
