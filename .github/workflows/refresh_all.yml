@@ -1,0 +1,63 @@
+name: Refresh All Caches (manual)
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-all
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Refresh BOK schedule
+        continue-on-error: true
+        run: python app/run_bok.py
+
+      - name: Refresh ECOS indicators
+        continue-on-error: true
+        env:
+          ECOS_API_KEY: ${{ secrets.ECOS_API_KEY }}
+        run: python app/run_ecos.py
+
+      - name: Refresh DART disclosures
+        continue-on-error: true
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+        run: python app/run_dart.py
+
+      - name: Refresh Naver supply
+        continue-on-error: true
+        run: python app/run_naver.py
+
+      - name: Commit cache changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase --autostash origin main
+          git add \
+            app/bok_schedule_cache.json \
+            app/ecos_cache.json \
+            app/dart_detail_cache.json \
+            app/naver_supply_cache.json
+          if git diff --cached --quiet; then
+            echo "No cache changes."
+          else
+            git commit -m "chore(refresh): manual refresh all caches"
+            git push
+          fi
