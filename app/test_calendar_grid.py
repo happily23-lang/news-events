@@ -141,3 +141,21 @@ def test_html_escape_in_event_title():
     html = _render_month_grid(events_by_date, 2026, 5, today)
     assert "<script>" not in html
     assert "&lt;script&gt;" in html
+
+
+def test_december_grid_renders_correctly():
+    """2026년 12월: 1일이 화요일(weekday=1) → leading 1칸. 31일까지 → 총 32칸."""
+    today = date(2026, 5, 6)  # 오늘이 5월이라도 12월 그리드 렌더 가능
+    html = _render_month_grid({}, 2026, 12, today)
+    assert len(re.findall(r'class="cell[" ]', html)) == 32
+    # 12월 셀은 모두 미래 → past/today 없음
+    assert 'class="cell past"' not in html
+    assert "2026년 12월" in html
+
+
+def test_january_2027_grid_renders():
+    """2027년 1월 (다음 해): 1일이 금요일(weekday=4) → leading 4칸. 31일까지 → 총 35칸."""
+    today = date(2026, 5, 6)
+    html = _render_month_grid({}, 2027, 1, today)
+    assert len(re.findall(r'class="cell[" ]', html)) == 35
+    assert "2027년 1월" in html
