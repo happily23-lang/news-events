@@ -925,9 +925,31 @@ def _render_month_grid(events_by_date: dict, year: int, month: int, today: date)
     for _ in range(first_weekday):
         cells.append('<div class="cell empty"></div>')
 
-    # 날짜 셀 (이번 task에선 단순 .cell + cell-date 만)
+    # 날짜 셀
     for day in range(1, days_in_month + 1):
-        cells.append(f'<div class="cell"><div class="day-num">{day}</div></div>')
+        cell_date = date(year, month, day)
+        weekday = cell_date.weekday()  # 월=0..일=6
+
+        cell_classes = ["cell"]
+        if cell_date < today:
+            cell_classes.append("past")
+        elif cell_date == today:
+            cell_classes.append("today")
+
+        date_classes = ["day-num"]
+        if weekday == 5:
+            date_classes.append("sat")
+        elif weekday == 6:
+            date_classes.append("sun")
+
+        cell_class_attr = " ".join(cell_classes)
+        date_class_attr = " ".join(date_classes)
+
+        cells.append(
+            f'<div class="{cell_class_attr}">'
+            f'<div class="{date_class_attr}">{day}</div>'
+            f'</div>'
+        )
 
     cells_html = "".join(cells)
 

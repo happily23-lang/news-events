@@ -38,3 +38,35 @@ def test_leading_blank_cells_for_first_week():
     today = date(2026, 5, 6)
     html = _render_month_grid({}, 2026, 5, today)
     assert html.count('class="cell empty"') == 4
+
+
+def test_today_cell_has_today_class():
+    """오늘 날짜 셀에 'today' 클래스 부여."""
+    today = date(2026, 5, 6)
+    html = _render_month_grid({}, 2026, 5, today)
+    assert 'class="cell today"' in html
+
+
+def test_past_cells_in_current_month_have_past_class():
+    """이번 달 5/1~5/5는 'past' 클래스."""
+    today = date(2026, 5, 6)
+    html = _render_month_grid({}, 2026, 5, today)
+    # 5/1~5/5 = 5개 past 셀
+    assert html.count('class="cell past"') == 5
+
+
+def test_future_month_has_no_past_or_today():
+    """다음 달(6월) 그리드는 모두 미래 → past/today 클래스 없음."""
+    today = date(2026, 5, 6)
+    html = _render_month_grid({}, 2026, 6, today)
+    assert 'class="cell past"' not in html
+    assert 'class="cell today"' not in html
+
+
+def test_saturday_sunday_date_classes():
+    """토/일 셀의 day-num 에 sat/sun 클래스. 5월의 토(2,9,16,23,30)와 일(3,10,17,24,31)."""
+    today = date(2026, 5, 6)
+    html = _render_month_grid({}, 2026, 5, today)
+    # 각 토요일/일요일 5번씩
+    assert html.count('class="day-num sat"') == 5
+    assert html.count('class="day-num sun"') == 5
