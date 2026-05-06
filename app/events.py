@@ -601,7 +601,7 @@ def render_policy_event_html(cards: list[dict], total_news_count: int) -> str:
         cls = "up" if isinstance(pct, (int, float)) and pct > 0 else (
             "down" if isinstance(pct, (int, float)) and pct < 0 else "flat"
         )
-        link = f"https://m.stock.naver.com/domestic/stock/{code}/total" if code else "#"
+        link = f"https://finance.naver.com/item/main.naver?code={code}" if code else "#"
         theme_tag = ""
         if kind == "inferred" and s.get("theme_name"):
             theme_tag = f'<span class="theme-tag">{html_lib.escape(s["theme_name"])}</span>'

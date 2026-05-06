@@ -852,7 +852,7 @@ def _stock_chip(s: dict, kind: str) -> str:
     cls = "up" if isinstance(pct, (int, float)) and pct > 0 else (
         "down" if isinstance(pct, (int, float)) and pct < 0 else "flat"
     )
-    link = f"https://m.stock.naver.com/domestic/stock/{code}/total" if code else "#"
+    link = f"https://finance.naver.com/item/main.naver?code={code}" if code else "#"
     cat_tag = ""
     if kind == "inferred" and s.get("matched_category"):
         cat_tag = f'<span class="theme-tag">{_html_escape(s["matched_category"])}</span>'
