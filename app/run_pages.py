@@ -84,11 +84,8 @@ def main() -> int:
 
     # DART 페이지: 접수된 공시 (과거 14일) + 미래 일정
     dart_events = [e for e in cal_events if e.get("type") == "DISCLOSURE"]
-    # 캘린더 페이지: 비-DART 미래 이벤트 + DART 미래 일정 (future_schedule)
-    upcoming_events = [
-        e for e in cal_events
-        if e.get("type") != "DISCLOSURE" or _is_future_schedule(e)
-    ]
+    # 캘린더 페이지: DART 는 다트공시 탭에서 전담 — 캘린더에서는 모두 제외
+    upcoming_events = [e for e in cal_events if e.get("type") != "DISCLOSURE"]
 
     dart_future_count = sum(1 for e in dart_events if _is_future_schedule(e))
     print(f"[Page 2] DART disclosures ({len(dart_events)}, 미래 {dart_future_count})...")
