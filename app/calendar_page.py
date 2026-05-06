@@ -936,7 +936,7 @@ def _render_month_grid(events_by_date: dict, year: int, month: int, today: date)
         elif cell_date == today:
             cell_classes.append("today")
 
-        date_classes = ["day-num"]
+        date_classes = ["cell-date"]
         if weekday == 5:
             date_classes.append("sat")
         elif weekday == 6:

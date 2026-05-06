@@ -1,5 +1,6 @@
 """월간 그리드 캘린더 단위 테스트 (calendar_page._render_month_grid)."""
 
+import re
 from datetime import date
 
 from calendar_page import _render_month_grid
@@ -12,7 +13,7 @@ def test_empty_grid_has_correct_cell_count():
     # 총 35칸
     today = date(2026, 5, 6)
     html = _render_month_grid({}, 2026, 5, today)
-    assert html.count('class="cell') == 35
+    assert len(re.findall(r'class="cell[" ]', html)) == 35
 
 
 def test_grid_has_month_title():
@@ -64,9 +65,9 @@ def test_future_month_has_no_past_or_today():
 
 
 def test_saturday_sunday_date_classes():
-    """토/일 셀의 day-num 에 sat/sun 클래스. 5월의 토(2,9,16,23,30)와 일(3,10,17,24,31)."""
+    """토/일 셀의 cell-date 에 sat/sun 클래스. 5월의 토(2,9,16,23,30)와 일(3,10,17,24,31)."""
     today = date(2026, 5, 6)
     html = _render_month_grid({}, 2026, 5, today)
     # 각 토요일/일요일 5번씩
-    assert html.count('class="day-num sat"') == 5
-    assert html.count('class="day-num sun"') == 5
+    assert html.count('class="cell-date sat"') == 5
+    assert html.count('class="cell-date sun"') == 5
