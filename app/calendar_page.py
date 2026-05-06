@@ -8,6 +8,7 @@
   inject_nav_header(html, active_page) → 두 페이지 HTML 에 공통 네비를 끼워넣기
 """
 
+import calendar as _stdlib_calendar
 import re
 from collections import defaultdict
 from datetime import date, datetime, timedelta
@@ -905,6 +906,41 @@ def _format_date_korean(iso_str: str) -> str:
     if dday < 0:
         return f"{label} · {-dday}일 전 공시"
     return f"{label} · D-{dday}"
+
+
+def _render_month_grid(events_by_date: dict, year: int, month: int, today: date) -> str:
+    """한 달치 월간 그리드 HTML 한 덩어리 반환.
+
+    events_by_date: {"YYYY-MM-DD": [event, ...]} — 이미 type_order 정렬되어 있다고 가정
+    year, month: 표시할 월
+    today: 오늘 강조 판정용
+    """
+    # 첫째 날의 weekday (월=0, 일=6)
+    first_weekday = date(year, month, 1).weekday()
+    days_in_month = _stdlib_calendar.monthrange(year, month)[1]
+
+    cells: list[str] = []
+
+    # leading 빈 셀
+    for _ in range(first_weekday):
+        cells.append('<div class="cell empty"></div>')
+
+    # 날짜 셀 (이번 task에선 단순 .cell + cell-date 만)
+    for day in range(1, days_in_month + 1):
+        cells.append(f'<div class="cell"><div class="day-num">{day}</div></div>')
+
+    cells_html = "".join(cells)
+
+    return (
+        f'<div class="month-grid">'
+        f'<h2 class="grid-month-title">{year}년 {month}월</h2>'
+        f'<div class="grid-header">'
+        f'<span>월</span><span>화</span><span>수</span><span>목</span>'
+        f'<span>금</span><span class="sat">토</span><span class="sun">일</span>'
+        f'</div>'
+        f'<div class="grid-body">{cells_html}</div>'
+        f'</div>'
+    )
 
 
 def _render_event_card(event: dict) -> str:
