@@ -957,13 +957,16 @@ def _render_month_grid(events_by_date: dict, year: int, month: int, today: date)
         day_events = events_by_date.get(date_iso) or []
         if day_events:
             cell_classes.append("has-events")
-            first = day_events[0]
-            icon = _TYPE_ICONS.get(first.get("type", ""), _DEFAULT_ICON)
-            title = _html_escape(first.get("title", ""))
-            head = f'{icon} {title}'.strip()
-            extra = len(day_events) - 1
-            more = f'<br><span class="more">+{extra}건</span>' if extra > 0 else ''
-            events_html = f'<div class="cell-events">{head}{more}</div>'
+            visible = day_events[:3]
+            lines = []
+            for ev in visible:
+                icon = _TYPE_ICONS.get(ev.get("type", ""), _DEFAULT_ICON)
+                title = _html_escape(ev.get("title", ""))
+                lines.append(f'<div class="cell-event">{icon} {title}</div>')
+            extra = len(day_events) - len(visible)
+            if extra > 0:
+                lines.append(f'<div class="cell-more">+{extra}건</div>')
+            events_html = f'<div class="cell-events">{"".join(lines)}</div>'
             cells.append(
                 f'<a class="{" ".join(cell_classes)}" href="#date-{date_iso}">'
                 f'{date_html}{events_html}</a>'
@@ -1264,7 +1267,7 @@ def render_calendar_html(events: list[dict],
     color:var(--text);
   }}
   .grid-header {{
-    display:grid; grid-template-columns:repeat(7, 1fr);
+    display:grid; grid-template-columns:repeat(7, minmax(0, 1fr));
     font-size:11px; color:var(--muted); padding:6px 0;
     border-bottom:1px solid var(--border); text-align:center;
   }}
@@ -1272,15 +1275,16 @@ def render_calendar_html(events: list[dict],
   .grid-header .sat {{ color:#2563eb; }}
   .grid-header .sun {{ color:#dc2626; }}
   .grid-body {{
-    display:grid; grid-template-columns:repeat(7, 1fr);
+    display:grid; grid-template-columns:repeat(7, minmax(0, 1fr));
     gap:1px; background:var(--border);
   }}
   .cell {{
-    background:var(--card); min-height:64px;
+    background:var(--card); height:96px; min-width:0;
     padding:4px 6px; font-size:11px;
-    display:block; text-decoration:none; color:inherit;
+    display:flex; flex-direction:column;
+    text-decoration:none; color:inherit; overflow:hidden;
   }}
-  .cell-date {{ font-weight:600; color:#555; }}
+  .cell-date {{ font-weight:600; color:#555; flex:0 0 auto; }}
   .cell-date.sat {{ color:#2563eb; }}
   .cell-date.sun {{ color:#dc2626; }}
   .cell.past {{ background:#f5f5f5; opacity:0.5; }}
@@ -1289,9 +1293,12 @@ def render_calendar_html(events: list[dict],
   .cell.has-events:hover {{ background:var(--accent-soft); }}
   .cell-events {{
     margin-top:2px; line-height:1.3;
+    flex:1 1 auto; min-height:0; overflow:hidden;
+  }}
+  .cell-event {{
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
   }}
-  .cell-events .more {{ color:#888; font-size:10px; }}
+  .cell-more {{ color:#888; font-size:10px; }}
 
   @media (max-width:600px) {{
     .month-grid-section {{ display:none; }}

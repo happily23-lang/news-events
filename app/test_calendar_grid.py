@@ -94,8 +94,8 @@ def test_cell_with_single_event_shows_icon_and_title():
     assert "+1건" not in html
 
 
-def test_cell_with_multiple_events_shows_first_and_more_count():
-    """이벤트 3건인 셀: 첫 건 표시 + '+2건'."""
+def test_cell_with_three_events_shows_all_no_more_count():
+    """이벤트 3건인 셀: 3건 모두 표시, '+N건' 없음."""
     events_by_date = {
         "2026-05-12": [
             _make_event("2026-05-12", "MACRO", "5월 FOMC"),
@@ -106,6 +106,33 @@ def test_cell_with_multiple_events_shows_first_and_more_count():
     today = date(2026, 5, 6)
     html = _render_month_grid(events_by_date, 2026, 5, today)
     assert "🌐 5월 FOMC" in html
+    assert "삼성 실적" in html
+    assert "현대 IR" in html
+    assert "건</div>" not in html or "+0건" not in html
+    # +N건 표시 없음
+    import re as _re
+    assert _re.search(r"\+\d+건", html) is None
+
+
+def test_cell_with_more_than_three_events_truncates_with_more_count():
+    """이벤트 5건인 셀: 상위 3건만 보이고 '+2건' 표시."""
+    events_by_date = {
+        "2026-05-12": [
+            _make_event("2026-05-12", "MACRO", "FOMC"),
+            _make_event("2026-05-12", "NEWS_FUTURE", "삼성"),
+            _make_event("2026-05-12", "NEWS_FUTURE", "현대"),
+            _make_event("2026-05-12", "NEWS_FUTURE", "LG"),
+            _make_event("2026-05-12", "NEWS_FUTURE", "SK"),
+        ],
+    }
+    today = date(2026, 5, 6)
+    html = _render_month_grid(events_by_date, 2026, 5, today)
+    assert "FOMC" in html
+    assert "삼성" in html
+    assert "현대" in html
+    # 4번째/5번째는 안 보이고 +2건으로 처리
+    assert "LG" not in html
+    assert "SK" not in html
     assert "+2건" in html
 
 
