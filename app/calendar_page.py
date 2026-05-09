@@ -1111,6 +1111,62 @@ NAV_TEMPLATE = """
     </div>
   </div>
 </nav>
+<script>
+(function () {{
+  if (!('ontouchstart' in window)) return;
+  var THRESHOLD = 60, RATIO = 1.5, MAX_TIME = 600;
+  var startX = 0, startY = 0, startT = 0, tracking = false;
+
+  function tabs() {{
+    return Array.prototype.slice.call(
+      document.querySelectorAll('.topnav .tabs .tab')
+    );
+  }}
+
+  function isInHScroll(el) {{
+    while (el && el !== document.body && el.nodeType === 1) {{
+      var s = window.getComputedStyle(el);
+      if ((s.overflowX === 'auto' || s.overflowX === 'scroll') &&
+          el.scrollWidth > el.clientWidth + 2) {{
+        return true;
+      }}
+      el = el.parentElement;
+    }}
+    return false;
+  }}
+
+  document.addEventListener('touchstart', function (e) {{
+    if (e.touches.length !== 1) {{ tracking = false; return; }}
+    var t = e.touches[0];
+    if (isInHScroll(e.target)) {{ tracking = false; return; }}
+    startX = t.clientX; startY = t.clientY; startT = Date.now();
+    tracking = true;
+  }}, {{ passive: true }});
+
+  document.addEventListener('touchend', function (e) {{
+    if (!tracking) return;
+    tracking = false;
+    var t = e.changedTouches && e.changedTouches[0];
+    if (!t) return;
+    var dx = t.clientX - startX, dy = t.clientY - startY;
+    if (Date.now() - startT > MAX_TIME) return;
+    if (Math.abs(dx) < THRESHOLD) return;
+    if (Math.abs(dx) < Math.abs(dy) * RATIO) return;
+
+    var ts = tabs();
+    if (!ts.length) return;
+    var idx = -1;
+    for (var i = 0; i < ts.length; i++) {{
+      if (ts[i].classList.contains('active')) {{ idx = i; break; }}
+    }}
+    if (idx < 0) return;
+    var next = dx < 0 ? idx + 1 : idx - 1;
+    if (next < 0 || next >= ts.length) return;
+    var href = ts[next].getAttribute('href');
+    if (href) window.location.href = href;
+  }}, {{ passive: true }});
+}})();
+</script>
 """
 
 
