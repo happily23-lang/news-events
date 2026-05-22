@@ -846,6 +846,21 @@ _TYPE_ICONS = {
 }
 _DEFAULT_ICON = "📅"
 
+# DISCLOSURE 중 특정 공시 유형은 전용 아이콘으로 눈에 띄게 (📋 대신).
+_DISCLOSURE_TYPE_ICONS = {
+    "주식분할결정": "✂️",  # 액면분할
+}
+
+
+def _event_icon(event: dict) -> str:
+    """이벤트 앞에 붙일 아이콘. DISCLOSURE 는 공시 유형별 전용 아이콘 우선."""
+    etype = event.get("type", "")
+    if etype == "DISCLOSURE":
+        dtype = event.get("disclosure_type", "")
+        if dtype in _DISCLOSURE_TYPE_ICONS:
+            return _DISCLOSURE_TYPE_ICONS[dtype]
+    return _TYPE_ICONS.get(etype, _DEFAULT_ICON)
+
 
 def _html_escape(s: str) -> str:
     import html as html_lib
@@ -960,7 +975,7 @@ def _render_month_grid(events_by_date: dict, year: int, month: int, today: date)
             visible = day_events[:3]
             lines = []
             for ev in visible:
-                icon = _TYPE_ICONS.get(ev.get("type", ""), _DEFAULT_ICON)
+                icon = _event_icon(ev)
                 title = _html_escape(ev.get("title", ""))
                 lines.append(f'<div class="cell-event">{icon} {title}</div>')
             extra = len(day_events) - len(visible)
@@ -996,7 +1011,7 @@ def _render_event_card(event: dict) -> str:
     src_url = event.get("source_url") or ""
     src_label = _html_escape(event.get("source_label") or "")
     event_type = event.get("type", "")
-    type_icon = _TYPE_ICONS.get(event_type, _DEFAULT_ICON)
+    type_icon = _event_icon(event)
 
     title_html = (
         f'<a href="{_html_escape(src_url)}" target="_blank" rel="noopener">{title}</a>'
@@ -1232,7 +1247,8 @@ def render_calendar_html(events: list[dict],
                          page_icon: str = "📅",
                          page_subtitle: str = "향후 30일",
                          show_month_grid: bool = False,
-                         today: "date | None" = None) -> str:
+                         today: "date | None" = None,
+                         grid_back_months: int = 0) -> str:
     today_obj = today or date.today()
     today_iso = today_obj.isoformat()
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
@@ -1278,13 +1294,21 @@ def render_calendar_html(events: list[dict],
         for d in events_by_date:
             events_by_date[d].sort(key=lambda x: type_order.get(x.get("type"), 9))
 
-        next_year = today_obj.year + (1 if today_obj.month == 12 else 0)
-        next_month = 1 if today_obj.month == 12 else today_obj.month + 1
+        def _shift_month(y: int, m: int, delta: int) -> "tuple[int, int]":
+            idx = y * 12 + (m - 1) + delta
+            return idx // 12, idx % 12 + 1
+
+        evd = dict(events_by_date)
+        grids: list[str] = []
+        # 과거 N개월(이벤트 있을 때만) → 이번 달 → 다음 달
+        for delta in range(-grid_back_months, 2):
+            gy, gm = _shift_month(today_obj.year, today_obj.month, delta)
+            has_events = any(k.startswith(f"{gy:04d}-{gm:02d}-") for k in evd)
+            if delta < 0 and not has_events:
+                continue  # 과거 달은 이벤트 없으면 빈 그리드 생략
+            grids.append(_render_month_grid(evd, gy, gm, today_obj))
         grid_html = (
-            '<section class="month-grid-section">'
-            + _render_month_grid(dict(events_by_date), today_obj.year, today_obj.month, today_obj)
-            + _render_month_grid(dict(events_by_date), next_year, next_month, today_obj)
-            + '</section>'
+            '<section class="month-grid-section">' + "".join(grids) + '</section>'
         )
         body = grid_html + body
 

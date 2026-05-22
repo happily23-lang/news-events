@@ -92,6 +92,7 @@ def main() -> int:
     dart_html = render_calendar_html(
         dart_events, page_title="다트공시", page_icon="📋",
         page_subtitle=f"최근 14일 접수분 + 미래 일정 {dart_future_count}건",
+        show_month_grid=True, today=today, grid_back_months=1,
     )
     dart_html = inject_nav(dart_html, active="dart")
     (OUTDIR / "news_dart.html").write_text(dart_html, encoding="utf-8")
