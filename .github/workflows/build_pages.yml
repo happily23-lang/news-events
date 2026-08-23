@@ -38,6 +38,7 @@ jobs:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
           ECOS_API_KEY: ${{ secrets.ECOS_API_KEY }}
           PAGES_OUTDIR: ./public
+          PAGES_SUPPLY_MAX_CALLS: "0"
         run: python app/run_pages.py
 
       - uses: actions/configure-pages@v5
