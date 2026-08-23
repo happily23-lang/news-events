@@ -22,7 +22,7 @@ import requests
 
 DART_LIST_URL = "https://opendart.fss.or.kr/api/list.json"
 DART_PIIC_URL = "https://opendart.fss.or.kr/api/piicDecsn.json"
-DART_STOCK_TOTQY_URL = "https://opendart.fss.or.kr/api/stockTotqySttus.json"
+DART_STOCK_TOTQY_URL = "https://opendart.fss.or.kr/api/stockTotqyItr.json"
 DART_BONUS_ISSUE_URL = "https://opendart.fss.or.kr/api/fricDecsn.json"
 DART_TREASURY_AQ_URL = "https://opendart.fss.or.kr/api/tsstkAqDecsn.json"
 DART_CB_URL = "https://opendart.fss.or.kr/api/cvbdIsDecsn.json"

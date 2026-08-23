@@ -9,7 +9,8 @@ Output: public/news_sector_flow.html
 
 The "intensity" label converts an absolute net-value into a comparable
 percentage so different sized sectors line up on the same scale:
-  intensity_pct = combined_net_value / (stock_count × 100억) × 100
+  intensity_pct = combined_net_value / observed_traded_value × 100
+  fallback: combined_net_value / (stock_count × 100억) × 100
 """
 import html as _html_lib
 import json
@@ -24,6 +25,16 @@ INTENSITY_LABELS = {
     "sell":        ("📉 매도",   "sell"),
     "strong_sell": ("❄ 강매도",  "strong_sell"),
 }
+
+
+def _window_traded_value(rows: list[dict], window: int) -> int:
+    selected = rows[:1] if window == 1 else rows[:window]
+    total = 0
+    for row in selected:
+        close = row.get("close") or 0
+        volume = row.get("volume") or 0
+        total += int(close * volume)
+    return total
 
 
 def classify_intensity(intensity_pct: float) -> tuple[str, str]:
@@ -45,6 +56,17 @@ def classify_intensity(intensity_pct: float) -> tuple[str, str]:
     if intensity_pct > -5.0:
         return INTENSITY_LABELS["sell"]
     return INTENSITY_LABELS["strong_sell"]
+
+
+def _has_flow_conflict(foreign_total: int, institution_total: int, min_ratio: float = 0.3) -> bool:
+    """True when foreign/institution flows meaningfully point in opposite directions."""
+    if foreign_total == 0 or institution_total == 0:
+        return False
+    if foreign_total * institution_total > 0:
+        return False
+    large = max(abs(foreign_total), abs(institution_total))
+    small = min(abs(foreign_total), abs(institution_total))
+    return large > 0 and (small / large) >= min_ratio
 
 
 def aggregate_sector_flows(
@@ -73,8 +95,8 @@ def aggregate_sector_flows(
     by_sector: dict[str, list[dict]] = {}
     for code, entry in relevant:
         sector = (sector_map.get(code) or {}).get("sector") or "기타"
+        rows = entry.get("rows") or []
         if window == 1:
-            rows = entry.get("rows") or []
             if not rows:
                 continue
             # rows[] is newest-first per naver_supply.py scrape order
@@ -92,7 +114,8 @@ def aggregate_sector_flows(
             "foreign_net_value": f_value,
             "institution_net_value": i_value,
             "net_value": combined,
-            "rows": entry.get("rows") or [],
+            "traded_value": _window_traded_value(rows, window),
+            "rows": rows,
         })
 
     results: list[dict] = []
@@ -101,8 +124,16 @@ def aggregate_sector_flows(
         i_total = sum(s["institution_net_value"] for s in stocks)
         combined = f_total + i_total
         count = len(stocks)
-        intensity_pct = (combined / max(1, count * 10_000_000_000)) * 100
+        traded_total = sum(s["traded_value"] for s in stocks)
+        if traded_total > 0:
+            intensity_basis = "traded_value"
+            reference_value = traded_total
+        else:
+            intensity_basis = "stock_count"
+            reference_value = max(1, count * 10_000_000_000)
+        intensity_pct = (combined / reference_value) * 100
         label, level = classify_intensity(intensity_pct)
+        flow_conflict = _has_flow_conflict(f_total, i_total)
 
         sorted_stocks = sorted(stocks, key=lambda s: s["net_value"], reverse=True)
         top_buy = [
@@ -122,14 +153,21 @@ def aggregate_sector_flows(
             "institution_net_value": i_total,
             "combined_net_value": combined,
             "intensity_pct": round(intensity_pct, 2),
+            "intensity_basis": intensity_basis,
             "intensity_label": label,
             "intensity_level": level,
+            "flow_conflict": flow_conflict,
+            "flow_conflict_label": "외인·기관 엇갈림" if flow_conflict else "",
             "top_buy": top_buy,
             "top_sell": top_sell,
             "sparkline": sparkline,
         })
 
-    results.sort(key=lambda r: r["combined_net_value"], reverse=True)
+    results.sort(key=lambda r: (
+        -abs(r["intensity_pct"]),
+        -abs(r["combined_net_value"]),
+        r["sector"],
+    ))
     return results
 
 
@@ -264,6 +302,11 @@ def _render_card(flow: dict, events: list[dict]) -> str:
     combined_str = _format_eok(flow["combined_net_value"])
     bar_pct = max(0.0, min(100.0, abs(flow["intensity_pct"]) * 5))
     bar_class = "bar-up" if flow["combined_net_value"] >= 0 else "bar-down"
+    basis_label = "거래대금 대비" if flow.get("intensity_basis") == "traded_value" else "종목수 기준"
+    conflict_html = ""
+    if flow.get("flow_conflict"):
+        conflict_label = _html_lib.escape(flow.get("flow_conflict_label") or "외인·기관 엇갈림")
+        conflict_html = f'<span class="conflict-badge">{conflict_label}</span>'
 
     spark = _sparkline_svg(flow.get("sparkline") or [])
 
@@ -311,13 +354,14 @@ def _render_card(flow: dict, events: list[dict]) -> str:
         f'<article class="sector-card sector-{level}">'
         f'<div class="sector-head">'
         f'<h3 class="sector-name">{sector}</h3>'
+        f"{conflict_html}"
         f'<span class="sector-label sector-label-{level}">{label}</span>'
         f"</div>"
         f'<div class="sector-flow">'
         f'<span class="flow-foreign">외인 {_html_lib.escape(f_str)}</span>'
         f'<span class="flow-sep">·</span>'
         f'<span class="flow-institution">기관 {_html_lib.escape(i_str)}</span>'
-        f'<span class="flow-count">· {flow["stock_count"]}종목</span>'
+        f'<span class="flow-count">· {flow["stock_count"]}종목 · {basis_label}</span>'
         f"</div>"
         f'<div class="flow-bar">'
         f'<div class="{bar_class}" style="width:{bar_pct:.0f}%"></div>'
@@ -330,7 +374,12 @@ def _render_card(flow: dict, events: list[dict]) -> str:
     )
 
 
-def _freshness_note(data_date: str | None, generated_at: str | None = None) -> str:
+def _freshness_note(
+    data_date: str | None,
+    generated_at: str | None = None,
+    now: datetime | None = None,
+    stale_after_days: int = 3,
+) -> str:
     """Return the human-readable freshness banner shown above the grid.
 
     Three states based on data_date and current local (KST) time:
@@ -340,11 +389,23 @@ def _freshness_note(data_date: str | None, generated_at: str | None = None) -> s
     """
     from datetime import timezone, timedelta as _td
     kst = timezone(_td(hours=9))
-    now_kst = datetime.now(kst)
-    today_iso = now_kst.date().isoformat()
+    now_kst = now.astimezone(kst) if now else datetime.now(kst)
+    today = now_kst.date()
+    today_iso = today.isoformat()
     gen_label = f" · 페이지 빌드 {generated_at}" if generated_at else ""
     if not data_date:
         return f"※ 수급 데이터를 불러오지 못했습니다.{gen_label}"
+    try:
+        market_date = date.fromisoformat(str(data_date)[:10])
+    except (TypeError, ValueError):
+        return f"※ 수급 데이터 기준일을 해석하지 못했습니다: {data_date}.{gen_label}"
+
+    age_days = (today - market_date).days
+    if age_days > stale_after_days:
+        return (
+            f"⚠️ <b>오래된 수급 데이터</b> · 기준일 {data_date} ({age_days}일 전) · "
+            f"추천/흐름 판단에 부적합합니다. 최신 캐시 갱신 후 확인하세요.{gen_label}"
+        )
     if data_date == today_iso:
         # KST settlement watershed ~ 16:00 (장 마감 15:30 + 정산 buffer 30m)
         if now_kst.hour < 16:
@@ -422,9 +483,14 @@ def render_sector_flow_html(
   }}
   .sector-card.sector-strong_buy {{ border-color:#f8b8b1; }}
   .sector-card.sector-strong_sell {{ border-color:#a3c4ff; }}
-  .sector-head {{ display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }}
+  .sector-head {{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; }}
   .sector-name {{ margin:0; font-size:17px; font-weight:700; letter-spacing:-0.01em; }}
   .sector-label {{ font-size:12px; padding:2px 8px; border-radius:999px; white-space:nowrap; }}
+  .conflict-badge {{
+    margin-left:auto; font-size:11px; font-weight:700; padding:2px 7px;
+    border-radius:999px; white-space:nowrap; background:#fff8e1; color:#7a5b00;
+    border:1px solid #f1dc92;
+  }}
   .sector-label-strong_buy {{ background:#fde2e0; color:#c0392b; }}
   .sector-label-buy {{ background:var(--up-soft); color:var(--up); }}
   .sector-label-neutral {{ background:#eee; color:#555; }}

@@ -255,3 +255,105 @@ def test_render_calendar_html_date_group_has_id_attribute():
     events = [_make_full_event("2026-05-12", "MACRO", "FOMC")]
     html = render_calendar_html(events)  # 그리드 안 켜도 id는 부여
     assert 'id="date-2026-05-12"' in html
+
+
+def test_render_calendar_html_marks_dart_dilution_risk():
+    from calendar_page import render_calendar_html
+
+    event = _make_full_event("2026-05-12", "DISCLOSURE", "테스트사 전환사채권발행결정")
+    event.update({
+        "direction": "negative",
+        "disclosure_type": "전환사채권발행결정",
+        "source_label": "DART 공시",
+    })
+
+    html = render_calendar_html([event])
+
+    assert "희석 리스크 높음" in html
+    assert "CB·BW·유상증자" in html
+
+
+def test_render_calendar_html_does_not_mark_split_as_dilution_risk():
+    from calendar_page import render_calendar_html
+
+    event = _make_full_event("2026-05-12", "DISCLOSURE", "테스트사 주식분할결정")
+    event.update({
+        "direction": "positive",
+        "disclosure_type": "주식분할결정",
+        "source_label": "DART 공시",
+    })
+
+    html = render_calendar_html([event])
+
+    assert "희석 리스크 높음" not in html
+
+
+def test_build_calendar_events_keeps_negative_dart_disclosures(monkeypatch):
+    import calendar_page
+    import bok_schedule
+    import dart_disclosure
+    import ecos_client
+    import naver_supply
+
+    monkeypatch.setattr(calendar_page, "extract_future_events_from_news", lambda *args, **kwargs: [])
+    monkeypatch.setattr(bok_schedule, "get_macro_events", lambda *args, **kwargs: [])
+    monkeypatch.setattr(dart_disclosure, "load_dart_key", lambda: "DART_KEY")
+    monkeypatch.setattr(ecos_client, "load_ecos_key", lambda: None)
+    monkeypatch.setattr(calendar_page, "attach_stocks_to_event", lambda event, *args, **kwargs: event)
+    monkeypatch.setattr(naver_supply, "enrich_stocks_with_supply", lambda stocks, **kwargs: stocks)
+
+    def fake_dart_events(api_key, today, past_window_days):
+        return [{
+            "type": "DISCLOSURE",
+            "event_date": today.isoformat(),
+            "title": "테스트사 · 유상증자결정",
+            "body_snippet": "희석성 공시",
+            "source_url": "",
+            "source_label": "DART 공시",
+            "direction": "negative",
+            "flags": [],
+            "direct_stocks": [],
+            "inferred_stocks": [],
+            "matched_categories": [],
+        }]
+
+    monkeypatch.setattr(dart_disclosure, "fetch_dart_target_events", fake_dart_events)
+
+    events = calendar_page.build_calendar_events([], {}, {}, {}, [], window_days=30)
+
+    assert [e["title"] for e in events] == ["테스트사 · 유상증자결정"]
+
+
+def test_build_calendar_events_accepts_supply_max_calls(monkeypatch):
+    import calendar_page
+    import bok_schedule
+    import dart_disclosure
+    import ecos_client
+    import naver_supply
+
+    monkeypatch.setattr(calendar_page, "extract_future_events_from_news", lambda *args, **kwargs: [{
+        "type": "NEWS_FUTURE",
+        "event_date": date.today().isoformat(),
+        "title": "테스트 이벤트",
+        "direction": "neutral",
+        "flags": [],
+        "direct_stocks": [{"code": "005930", "name": "삼성전자"}],
+        "inferred_stocks": [],
+        "matched_categories": ["반도체"],
+    }])
+    monkeypatch.setattr(bok_schedule, "get_macro_events", lambda *args, **kwargs: [])
+    monkeypatch.setattr(dart_disclosure, "load_dart_key", lambda: None)
+    monkeypatch.setattr(ecos_client, "load_ecos_key", lambda: None)
+    monkeypatch.setattr(calendar_page, "attach_stocks_to_event", lambda event, *args, **kwargs: event)
+
+    supply_calls = []
+
+    def fake_enrich(stocks, **kwargs):
+        supply_calls.append(kwargs)
+        return stocks
+
+    monkeypatch.setattr(naver_supply, "enrich_stocks_with_supply", fake_enrich)
+
+    calendar_page.build_calendar_events([], {}, {}, {}, [], window_days=30, supply_max_calls=0)
+
+    assert supply_calls[0]["max_calls"] == 0

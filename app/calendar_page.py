@@ -759,7 +759,8 @@ def build_calendar_events(news_items: list[dict],
                           code_map: dict[str, dict],
                           theme_index: dict[str, dict],
                           categories: list[dict],
-                          window_days: int = 30) -> list[dict]:
+                          window_days: int = 30,
+                          supply_max_calls: int = 120) -> list[dict]:
     today = date.today()
     news_events = extract_future_events_from_news(news_items, today=today, window_days=window_days)
     from bok_schedule import get_macro_events
@@ -791,7 +792,7 @@ def build_calendar_events(news_items: list[dict],
     all_chips: list[dict] = []
     for e in events:
         all_chips.extend(e.get("direct_stocks", []))
-    enrich_stocks_with_supply(all_chips, days=5, max_calls=120)
+    enrich_stocks_with_supply(all_chips, days=5, max_calls=supply_max_calls)
 
     # 시그널 태깅: NEWS_FUTURE 가 종목/카테고리 매칭 0건이면 low_signal 로 표시.
     # 렌더 단계에서 별도 섹션으로 강등 (drop 하지 않음).
@@ -811,12 +812,13 @@ def build_calendar_events(news_items: list[dict],
         if e.get("event_date", "") >= today_iso or e.get("type") == "DISCLOSURE"
     ]
 
-    # 악재 필터: direction == 'negative' 인 이벤트는 캘린더에서 제외
-    # (DART 의 유상증자결정·CB·BW 등 희석성 공시)
-    # 단, future_schedule (CB 납입일·전환청구 시작 등) 은 일정 정보로서 통과.
+    # 악재 필터: direction == 'negative' 인 비-DART 이벤트는 캘린더에서 제외.
+    # DART 의 유상증자결정·CB·BW 등 희석성 공시는 다트공시 탭의 리스크 레인으로 남긴다.
+    # future_schedule (CB 납입일·전환청구 시작 등) 도 일정 정보로서 통과.
     events = [
         e for e in events
         if e.get("direction") != "negative"
+        or e.get("type") == "DISCLOSURE"
         or "future_schedule" in (e.get("flags") or [])
     ]
 
@@ -851,6 +853,12 @@ _DISCLOSURE_TYPE_ICONS = {
     "주식분할결정": "✂️",  # 액면분할
 }
 
+_DILUTION_DISCLOSURE_TYPES = {
+    "유상증자결정",
+    "전환사채권발행결정",
+    "신주인수권부사채권발행결정",
+}
+
 
 def _event_icon(event: dict) -> str:
     """이벤트 앞에 붙일 아이콘. DISCLOSURE 는 공시 유형별 전용 아이콘 우선."""
@@ -860,6 +868,14 @@ def _event_icon(event: dict) -> str:
         if dtype in _DISCLOSURE_TYPE_ICONS:
             return _DISCLOSURE_TYPE_ICONS[dtype]
     return _TYPE_ICONS.get(etype, _DEFAULT_ICON)
+
+
+def _is_dilution_risk_disclosure(event: dict) -> bool:
+    if event.get("type") != "DISCLOSURE":
+        return False
+    disclosure_type = event.get("disclosure_type") or ""
+    flags = event.get("flags") or []
+    return disclosure_type in _DILUTION_DISCLOSURE_TYPES or "preferred_share_issuance" in flags
 
 
 def _html_escape(s: str) -> str:
@@ -1079,6 +1095,12 @@ def _render_event_card(event: dict) -> str:
         post = meta.get("post")
         tooltip = f"신주 액면가 {post}원 / 기존 {pre}원 → 종류주(우선주 등) 발행 의심" if pre and post else "종류주 발행 의심"
         flag_badges += f'<span class="flag-badge flag-pref" title="{_html_escape(tooltip)}">🏷️ 종류주 의심</span>'
+    if _is_dilution_risk_disclosure(event):
+        flag_badges += (
+            '<span class="flag-badge flag-dilution" '
+            'title="CB·BW·유상증자 등 기존 주주 지분 희석 가능성이 있는 공시">'
+            '희석 리스크 높음</span>'
+        )
 
     related_html = ""
     related_urls = event.get("related_urls") or []
@@ -1426,6 +1448,7 @@ def render_calendar_html(events: list[dict],
     cursor:help;
   }}
   .flag-pref {{ background:#fef3c7; color:#92400e; border:1px solid #fde68a; }}
+  .flag-dilution {{ background:#fef2f2; color:#991b1b; border:1px solid #fecaca; }}
   .event-body {{
     font-size:13.5px; color:#444; margin:0 0 12px;
     padding:8px 12px; background:#fafafa; border-radius:6px;

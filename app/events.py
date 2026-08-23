@@ -30,10 +30,24 @@ EXCLUDE_NAME_PATTERNS = ['스팩', 'SPAC', '리츠', 'REIT', '1호', '2호', '3�
 # KRX 캐시 / 종목 매칭
 # ============================================================
 
+def _ensure_certifi_ca_bundle() -> None:
+    """Make urllib-based dependencies use certifi's CA bundle when available."""
+    if os.environ.get("SSL_CERT_FILE"):
+        return
+    try:
+        import certifi
+    except ImportError:
+        return
+    ca_path = certifi.where()
+    if ca_path and os.path.exists(ca_path):
+        os.environ["SSL_CERT_FILE"] = ca_path
+
+
 def load_krx_listings(refresh: bool = False) -> list[dict]:
     if not refresh and os.path.exists(KRX_CACHE_PATH):
         with open(KRX_CACHE_PATH) as f:
             return json.load(f)
+    _ensure_certifi_ca_bundle()
     import FinanceDataReader as fdr
     df = fdr.StockListing('KRX')
     cols = ['Code', 'Name', 'Market', 'Close', 'Changes', 'ChagesRatio']
@@ -478,18 +492,24 @@ def detect_events_in_news(news_items: list[dict], categories: list[dict],
             in_title = [k for k in c["keywords"] if k in title]
             if not in_title:
                 continue
+            match_mode = "keyword"
+            embed_score = None
             if cat_index is not None:
                 if scores is None:
                     scores = score_article_categories(
                         title, news.get("content", ""), cat_index,
                     )
-                if scores.get(c["id"], 1.0) < threshold:
+                embed_score = scores.get(c["id"])
+                if embed_score is not None:
+                    match_mode = "semantic"
+                if embed_score is not None and embed_score < threshold:
                     continue
             enriched = dict(news)
             enriched["matched_keywords"] = in_title
             enriched["title_match"] = True
-            if scores is not None:
-                enriched["embed_score"] = scores.get(c["id"])
+            enriched["match_mode"] = match_mode
+            if embed_score is not None:
+                enriched["embed_score"] = embed_score
             result[c["id"]].append(enriched)
 
     # ECOS cross-check: fomc/fx/oil 카테고리 매칭이 실제 ECOS 변동과 정합인지 검증.
@@ -520,7 +540,8 @@ def build_event_cards(news_items: list[dict],
                       categories: list[dict],
                       theme_index: dict[str, dict],
                       name_map: dict[str, dict],
-                      code_map: dict[str, dict]) -> list[dict]:
+                      code_map: dict[str, dict],
+                      supply_max_calls: int = 80) -> list[dict]:
     """
     카테고리별 EventCard 생성. 매칭 뉴스 0건인 카테고리는 제외.
     """
@@ -564,17 +585,15 @@ def build_event_cards(news_items: list[dict],
             "resolved_themes": resolved_themes,
         })
 
-    # 스코어로 정렬: 뉴스 수 × 2 + direct 종목 수
-    cards.sort(
-        key=lambda card: -(len(card["matched_news"]) * 2 + len(card["direct_stocks"]))
-    )
+    # 화면에 표시하는 신호 강도와 같은 기준으로 정렬한다.
+    cards.sort(key=lambda card: -_signal_score(card)[0])
 
     # 외국인·기관 5일 수급 보강 (NAVER 스크래핑) — direct 종목만, 카드당 호출 비용 관리
     from naver_supply import enrich_stocks_with_supply
     all_chips: list[dict] = []
     for card in cards:
         all_chips.extend(card["direct_stocks"])
-    enrich_stocks_with_supply(all_chips, days=5, max_calls=80)
+    enrich_stocks_with_supply(all_chips, days=5, max_calls=supply_max_calls)
 
     return cards
 
@@ -583,6 +602,33 @@ def build_event_cards(news_items: list[dict],
 # ============================================================
 # HTML 렌더
 # ============================================================
+
+def _signal_score(card: dict) -> tuple[int, str, str]:
+    """Return (score, level_label, level_id) for a recommendation card.
+
+    The score is intentionally simple and explainable:
+      - repeated news coverage: up to 30
+      - direct stock mentions: up to 40
+      - inferred theme stocks: up to 15
+      - ECOS-confirmed macro consistency: +15
+      - low-signal macro/news mismatch: -25
+    """
+    matched_news = card.get("matched_news") or []
+    score = min(30, len(matched_news) * 10)
+    score += min(40, len(card.get("direct_stocks") or []) * 25)
+    score += min(15, len(card.get("inferred_stocks") or []) * 15)
+    if any(n.get("ecos_verified") is True for n in matched_news):
+        score += 15
+    if any(n.get("low_signal") for n in matched_news):
+        score -= 25
+    score = max(0, min(100, score))
+
+    if score >= 70:
+        return score, "높음", "high"
+    if score >= 40:
+        return score, "보통", "medium"
+    return score, "낮음", "low"
+
 
 def render_policy_event_html(cards: list[dict], total_news_count: int) -> str:
     import html as html_lib
@@ -621,6 +667,11 @@ def render_policy_event_html(cards: list[dict], total_news_count: int) -> str:
         c = card["category"]
         label = html_lib.escape(c["label"])
         news_count = len(card["matched_news"])
+        signal_score, signal_label, signal_level = _signal_score(card)
+        signal_badge = (
+            f'<span class="signal-badge signal-{signal_level}">'
+            f'신호 강도 {signal_score}점 · {signal_label}</span>'
+        )
 
         # 뉴스 리스트 (최대 5건)
         news_lis = []
@@ -628,11 +679,24 @@ def render_policy_event_html(cards: list[dict], total_news_count: int) -> str:
             title = html_lib.escape(n["title"])
             link = html_lib.escape(n["link"])
             kws = ", ".join(n.get("matched_keywords", []))
+            mode = n.get("match_mode")
+            mode_html = ""
+            if mode == "keyword":
+                mode_html = '<span class="match-mode mode-keyword">키워드만</span>'
+            elif mode == "semantic":
+                mode_html = '<span class="match-mode mode-semantic">의미검증</span>'
             news_lis.append(
                 f'<li><a href="{link}" target="_blank" rel="noopener">{title}</a>'
-                f'<span class="kw">🔎 {html_lib.escape(kws)}</span></li>'
+                f'<span class="kw">🔎 {html_lib.escape(kws)}</span>{mode_html}</li>'
             )
         news_html = "<ul class='news-list'>" + "".join(news_lis) + "</ul>"
+        low_signal_note = ""
+        if any(n.get("low_signal") for n in card["matched_news"]):
+            low_signal_note = (
+                '<div class="signal-warning">'
+                '<strong>저신뢰 신호</strong> · 추천 후보가 아닌 참고용으로 확인'
+                '</div>'
+            )
 
         # direct 종목
         if card["direct_stocks"]:
@@ -670,8 +734,10 @@ def render_policy_event_html(cards: list[dict], total_news_count: int) -> str:
         return (
             '<article>'
             f'<header><h2>{label}</h2>'
+            f'{signal_badge}'
             f'<span class="news-badge">📰 {news_count}건 기사</span></header>'
             f'{news_html}'
+            f'{low_signal_note}'
             f'{direct_block}'
             f'{inferred_block}'
             '</article>'
@@ -725,6 +791,13 @@ def render_policy_event_html(cards: list[dict], total_news_count: int) -> str:
     margin-left:auto; font-size:12px; font-weight:600; color:var(--accent);
     background:var(--accent-soft); padding:3px 10px; border-radius:12px;
   }}
+  .signal-badge {{
+    font-size:12px; font-weight:700; padding:3px 10px; border-radius:12px;
+    white-space:nowrap;
+  }}
+  .signal-high {{ color:#1b5e20; background:#e8f5e9; }}
+  .signal-medium {{ color:#7a5b00; background:#fff8e1; }}
+  .signal-low {{ color:#6b7280; background:#f1f3f5; }}
 
   .news-list {{ list-style:none; padding:0; margin:0 0 16px; }}
   .news-list li {{ padding:6px 0; font-size:13.5px; }}
@@ -732,6 +805,18 @@ def render_policy_event_html(cards: list[dict], total_news_count: int) -> str:
   .news-list a {{ color:#333; text-decoration:none; }}
   .news-list a:hover {{ color:var(--accent); text-decoration:underline; }}
   .kw {{ color:var(--muted); font-size:11px; margin-left:8px; }}
+  .match-mode {{
+    margin-left:6px; font-size:10px; font-weight:700;
+    padding:1px 5px; border-radius:4px; white-space:nowrap;
+  }}
+  .mode-keyword {{ background:#fff8e1; color:#7a5b00; }}
+  .mode-semantic {{ background:#e8f5e9; color:#1b5e20; }}
+  .signal-warning {{
+    margin:-4px 0 12px; padding:7px 10px; border-radius:6px;
+    background:#fff8e1; border:1px solid #f1dc92; color:#7a5b00;
+    font-size:12px;
+  }}
+  .signal-warning strong {{ font-weight:800; }}
 
   .stocks-block {{ margin-top:12px; }}
   .label {{ font-size:12px; font-weight:700; margin-bottom:8px; letter-spacing:-0.01em; }}

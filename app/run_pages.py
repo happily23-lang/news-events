@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build static dashboard HTML (3 pages) for GitHub Pages deployment."""
+"""Build static dashboard HTML (4 pages) for GitHub Pages deployment."""
 import os
 import sys
 import warnings
@@ -39,6 +39,22 @@ REDIRECT_HTML = """<!DOCTYPE html>
 """
 
 
+def _days_to_year_end(today: date) -> int:
+    return (date(today.year, 12, 31) - today).days
+
+
+def _calendar_window_subtitle(today: date) -> str:
+    return f"연말까지 {_days_to_year_end(today)}일"
+
+
+def _supply_max_calls() -> int:
+    raw = os.environ.get("PAGES_SUPPLY_MAX_CALLS", "120")
+    try:
+        return max(0, int(raw))
+    except ValueError:
+        return 120
+
+
 def main() -> int:
     OUTDIR.mkdir(parents=True, exist_ok=True)
     print(f"Output dir: {OUTDIR}")
@@ -62,8 +78,10 @@ def main() -> int:
     print(f"  merged news {len(news)}")
 
     print("[Page 1] policy event cards...")
+    supply_max_calls = _supply_max_calls()
     policy_cards = build_event_cards(
-        news, CATEGORIES, theme_index, name_map, code_map
+        news, CATEGORIES, theme_index, name_map, code_map,
+        supply_max_calls=supply_max_calls,
     )
     policy_html = render_policy_event_html(policy_cards, total_news_count=len(news))
     policy_html = inject_nav(policy_html, active="policy")
@@ -72,10 +90,11 @@ def main() -> int:
 
     print("[Calendar events build]")
     today = date.today()
-    days_to_eoy = (date(today.year, 12, 31) - today).days
+    days_to_eoy = _days_to_year_end(today)
     cal_events = build_calendar_events(
         news, name_map, code_map, theme_index, CATEGORIES,
         window_days=days_to_eoy,
+        supply_max_calls=supply_max_calls,
     )
     print(f"  total events {len(cal_events)}")
 
@@ -101,7 +120,7 @@ def main() -> int:
     print(f"[Page 3] upcoming calendar ({len(upcoming_events)})...")
     cal_html = render_calendar_html(
         upcoming_events, page_title="다가올 이벤트 캘린더", page_icon="📅",
-        page_subtitle="향후 30일",
+        page_subtitle=_calendar_window_subtitle(today),
         show_month_grid=True, today=today,
     )
     cal_html = inject_nav(cal_html, active="calendar")

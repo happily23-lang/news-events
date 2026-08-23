@@ -1,6 +1,6 @@
 """sector_flow_page 단위 테스트."""
 import json
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -104,6 +104,22 @@ def test_aggregate_top3_buy_and_sell():
     assert f["top_sell"][0]["name"] == "D"
 
 
+def test_aggregate_sorts_by_absolute_flow_strength():
+    supply = {
+        "001|2026-05-03|5": _supply(15_000_000_000, 0),
+        "002|2026-05-03|5": _supply(-90_000_000_000, 0),
+    }
+    sector_map = {
+        "001": {"sector": "소폭매수"},
+        "002": {"sector": "강한매도"},
+    }
+    name_map = {"001": "A", "002": "B"}
+
+    flows = sfp.aggregate_sector_flows(supply, sector_map, name_map, window=5, as_of="2026-05-03")
+
+    assert [f["sector"] for f in flows] == ["강한매도", "소폭매수"]
+
+
 def test_aggregate_unmapped_goes_to_etc():
     supply = {"999|2026-05-03|5": _supply(5_000_000_000, 0)}
     flows = sfp.aggregate_sector_flows(supply, {}, {"999": "X"}, window=5, as_of="2026-05-03")
@@ -128,6 +144,39 @@ def test_aggregate_intensity_attached():
     )
     # 20억 / (1 stock × 100억) × 100 = 20% → strong_buy
     assert flows[0]["intensity_level"] == "strong_buy"
+
+
+def test_aggregate_intensity_uses_observed_traded_value_when_rows_available():
+    rows = [
+        {"date": "2026-05-03", "close": 100, "volume": 1000, "foreign_net": 300, "institution_net": 0},
+        {"date": "2026-05-02", "close": 100, "volume": 1000, "foreign_net": 200, "institution_net": 0},
+    ]
+    supply = {"001|2026-05-03|5": _supply(50_000, 0, rows=rows)}
+    flows = sfp.aggregate_sector_flows(
+        supply, {"001": {"sector": "테스트"}}, {"001": "X"}, window=5, as_of="2026-05-03"
+    )
+
+    assert flows[0]["intensity_pct"] == 25.0
+    assert flows[0]["intensity_basis"] == "traded_value"
+
+
+def test_aggregate_marks_divergent_foreign_institution_flow():
+    supply = {"001|2026-05-03|5": _supply(100_000_000_000, -80_000_000_000)}
+    flows = sfp.aggregate_sector_flows(
+        supply, {"001": {"sector": "테스트"}}, {"001": "X"}, window=5, as_of="2026-05-03"
+    )
+
+    assert flows[0]["flow_conflict"] is True
+    assert flows[0]["flow_conflict_label"] == "외인·기관 엇갈림"
+
+
+def test_aggregate_ignores_tiny_opposite_flow_as_noise():
+    supply = {"001|2026-05-03|5": _supply(100_000_000_000, -5_000_000_000)}
+    flows = sfp.aggregate_sector_flows(
+        supply, {"001": {"sector": "테스트"}}, {"001": "X"}, window=5, as_of="2026-05-03"
+    )
+
+    assert flows[0]["flow_conflict"] is False
 
 
 def test_aggregate_1d_uses_most_recent_row():
@@ -222,6 +271,8 @@ def test_render_sector_flow_html_smoke():
             "intensity_pct": 20.0,
             "intensity_label": "🔥 강매수",
             "intensity_level": "strong_buy",
+            "flow_conflict": True,
+            "flow_conflict_label": "외인·기관 엇갈림",
             "top_buy": [{"code": "005930", "name": "삼성전자",
                          "net_value": 3_500_000_000_000}],
             "top_sell": [],
@@ -239,9 +290,24 @@ def test_render_sector_flow_html_smoke():
     assert "<!DOCTYPE html>" in html
     assert "전기·전자" in html
     assert "🔥 강매수" in html
+    assert "외인·기관 엇갈림" in html
     assert "삼성전자" in html
     assert "삼성 1Q 실적" in html
     assert "window.__SECTOR_FLOW__" in html
+
+
+def test_freshness_note_marks_stale_market_data_as_unfit_for_flow_judgment():
+    kst = timezone(timedelta(hours=9))
+    note = sfp._freshness_note(
+        "2026-05-22",
+        generated_at="2026-08-23 10:00 KST",
+        now=datetime(2026, 8, 23, 10, 0, tzinfo=kst),
+    )
+
+    assert "오래된 수급 데이터" in note
+    assert "93일 전" in note
+    assert "추천/흐름 판단에 부적합" in note
+    assert "2026-08-23 10:00 KST" in note
 
 
 # ---------------------------------------------------------------------------

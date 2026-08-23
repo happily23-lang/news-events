@@ -6,36 +6,17 @@ Naver 뉴스 aggregator 외에 직접 연합뉴스·매경 경제/증권 섹션�
 """
 
 import re
-import ssl
 import xml.etree.ElementTree as ET
 from typing import Optional
 
 import requests
 from bs4 import BeautifulSoup
-from requests.adapters import HTTPAdapter
 
 
 HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
 
 
-class _LegacyTLSAdapter(HTTPAdapter):
-    """구식 TLS 사용 서버(이데일리 RSS 등) 호환."""
-    def init_poolmanager(self, *args, **kwargs):
-        ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-        ctx.check_hostname = False
-        ctx.verify_mode = ssl.CERT_NONE
-        try:
-            ctx.minimum_version = ssl.TLSVersion.TLSv1
-        except (AttributeError, ValueError):
-            pass
-        kwargs["ssl_context"] = ctx
-        super().init_poolmanager(*args, **kwargs)
-
-
 _session = requests.Session()
-_session.mount("https://rss.edaily.co.kr/", _LegacyTLSAdapter())
-_session.mount("https://www.edaily.co.kr/", _LegacyTLSAdapter())
-_session.mount("https://m.edaily.co.kr/", _LegacyTLSAdapter())
 
 
 # (label, rss_url)
@@ -90,9 +71,8 @@ def _select_body_area(soup: BeautifulSoup, url: str):
 
 
 def fetch_article_body(url: str, max_len: int = 2500) -> str:
-    verify = "edaily.co.kr" not in url
     try:
-        r = _session.get(url, headers=HEADERS, timeout=10, verify=verify)
+        r = _session.get(url, headers=HEADERS, timeout=10)
     except requests.RequestException:
         return ""
     # EUC-KR 레거시 사이트도 있어 fallback
@@ -148,10 +128,8 @@ def fetch_rss_news(per_feed: int = 20, fetch_body: bool = True) -> list[dict]:
     seen_links: set[str] = set()
 
     for label, rss_url in RSS_FEEDS:
-        # 이데일리는 구식 TLS 서버라 SSL 검증 생략
-        verify = "edaily.co.kr" not in rss_url
         try:
-            r = _session.get(rss_url, headers=HEADERS, timeout=10, verify=verify)
+            r = _session.get(rss_url, headers=HEADERS, timeout=10)
         except requests.RequestException:
             continue
         if r.status_code != 200:
