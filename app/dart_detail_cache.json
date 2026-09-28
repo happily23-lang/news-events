@@ -13161,18 +13161,6 @@
       "last_error": "fetch_failed",
       "data": null
     },
-    "20260827000927": {
-      "rcept_no": "20260827000927",
-      "corp_code": "00451763",
-      "disclosure_type": "자기주식취득결정",
-      "status": "resolved",
-      "fetched_at": "2026-08-27T08:29:39.398871+00:00",
-      "retries": 0,
-      "data": {
-        "aqexpd_bgd": "2026-08-27",
-        "aqexpd_edd": "2026-08-27"
-      }
-    },
     "20260827000833": {
       "rcept_no": "20260827000833",
       "corp_code": "00153861",
@@ -13192,31 +13180,6 @@
       "retries": 2,
       "last_error": "fetch_failed",
       "data": null
-    },
-    "20260827000861": {
-      "rcept_no": "20260827000861",
-      "corp_code": "00138242",
-      "disclosure_type": "전환사채권발행결정",
-      "status": "resolved",
-      "fetched_at": "2026-08-27T08:29:44.299945+00:00",
-      "retries": 0,
-      "data": {
-        "pymd": "2026-09-11",
-        "cvrqpd_bgd": "2027-09-11",
-        "cvrqpd_edd": "2031-08-11"
-      }
-    },
-    "20260827000843": {
-      "rcept_no": "20260827000843",
-      "corp_code": "01383229",
-      "disclosure_type": "자기주식취득결정",
-      "status": "resolved",
-      "fetched_at": "2026-08-27T08:29:44.989192+00:00",
-      "retries": 0,
-      "data": {
-        "aqexpd_bgd": "2026-08-28",
-        "aqexpd_edd": "2026-11-26"
-      }
     },
     "20260827000761": {
       "rcept_no": "20260827000761",
@@ -13498,19 +13461,6 @@
       "last_error": "fetch_failed",
       "data": null
     },
-    "20260826000286": {
-      "rcept_no": "20260826000286",
-      "corp_code": "01601222",
-      "disclosure_type": "전환사채권발행결정",
-      "status": "resolved",
-      "fetched_at": "2026-08-27T08:31:34.958760+00:00",
-      "retries": 0,
-      "data": {
-        "pymd": "2026-09-03",
-        "cvrqpd_bgd": "2027-09-03",
-        "cvrqpd_edd": "2031-08-03"
-      }
-    },
     "20260828001955": {
       "rcept_no": "20260828001955",
       "corp_code": "00276083",
@@ -13730,18 +13680,6 @@
       "retries": 2,
       "last_error": "fetch_failed",
       "data": null
-    },
-    "20260828000455": {
-      "rcept_no": "20260828000455",
-      "corp_code": "01416235",
-      "disclosure_type": "자기주식취득결정",
-      "status": "resolved",
-      "fetched_at": "2026-08-28T10:44:58.030752+00:00",
-      "retries": 0,
-      "data": {
-        "aqexpd_bgd": "2026-08-31",
-        "aqexpd_edd": "2026-11-28"
-      }
     },
     "20260828000007": {
       "rcept_no": "20260828000007",
@@ -17136,6 +17074,19 @@
       "retries": 2,
       "last_error": "fetch_failed",
       "data": null
+    },
+    "20260923000640": {
+      "rcept_no": "20260923000640",
+      "corp_code": "01142075",
+      "disclosure_type": "전환사채권발행결정",
+      "status": "resolved",
+      "fetched_at": "2026-09-28T04:39:58.808625+00:00",
+      "retries": 0,
+      "data": {
+        "pymd": "2026-10-01",
+        "cvrqpd_bgd": "2027-10-01",
+        "cvrqpd_edd": "2029-09-01"
+      }
     }
   },
   "face_value_by_corp": {}
