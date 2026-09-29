@@ -17087,6 +17087,196 @@
         "cvrqpd_bgd": "2027-10-01",
         "cvrqpd_edd": "2029-09-01"
       }
+    },
+    "20260929000203": {
+      "rcept_no": "20260929000203",
+      "corp_code": "00530413",
+      "disclosure_type": "유상증자결정",
+      "status": "pending_retry",
+      "fetched_at": null,
+      "retries": 1,
+      "last_error": "fetch_failed",
+      "data": null
+    },
+    "20260929000189": {
+      "rcept_no": "20260929000189",
+      "corp_code": "00173698",
+      "disclosure_type": "자기주식취득결정",
+      "status": "resolved",
+      "fetched_at": "2026-09-29T05:07:08.231633+00:00",
+      "retries": 0,
+      "data": {
+        "aqexpd_bgd": "2026-09-30",
+        "aqexpd_edd": "2026-12-29"
+      }
+    },
+    "20260929000168": {
+      "rcept_no": "20260929000168",
+      "corp_code": "01267958",
+      "disclosure_type": "무상증자결정",
+      "status": "pending_retry",
+      "fetched_at": null,
+      "retries": 1,
+      "last_error": "fetch_failed",
+      "data": null
+    },
+    "20260929000135": {
+      "rcept_no": "20260929000135",
+      "corp_code": "01146822",
+      "disclosure_type": "자기주식취득결정",
+      "status": "resolved",
+      "fetched_at": "2026-09-29T05:07:13.694537+00:00",
+      "retries": 0,
+      "data": {
+        "aqexpd_bgd": "2026-09-30",
+        "aqexpd_edd": "2026-12-29"
+      }
+    },
+    "20260929000153": {
+      "rcept_no": "20260929000153",
+      "corp_code": "00413046",
+      "disclosure_type": "자기주식취득결정",
+      "status": "resolved",
+      "fetched_at": "2026-09-29T05:07:14.633687+00:00",
+      "retries": 0,
+      "data": {
+        "aqexpd_bgd": "2026-09-30",
+        "aqexpd_edd": "2026-12-29"
+      }
+    },
+    "20260929000138": {
+      "rcept_no": "20260929000138",
+      "corp_code": "01042650",
+      "disclosure_type": "유상증자결정",
+      "status": "pending_retry",
+      "fetched_at": null,
+      "retries": 1,
+      "last_error": "fetch_failed",
+      "data": null
+    },
+    "20260929000083": {
+      "rcept_no": "20260929000083",
+      "corp_code": "00587925",
+      "disclosure_type": "유상증자결정",
+      "status": "pending_retry",
+      "fetched_at": null,
+      "retries": 1,
+      "last_error": "fetch_failed",
+      "data": null
+    },
+    "20260929000017": {
+      "rcept_no": "20260929000017",
+      "corp_code": "01335374",
+      "disclosure_type": "유상증자결정",
+      "status": "pending_retry",
+      "fetched_at": null,
+      "retries": 1,
+      "last_error": "fetch_failed",
+      "data": null
+    },
+    "20260928000396": {
+      "rcept_no": "20260928000396",
+      "corp_code": "00587925",
+      "disclosure_type": "유상증자결정",
+      "status": "pending_retry",
+      "fetched_at": null,
+      "retries": 1,
+      "last_error": "fetch_failed",
+      "data": null
+    },
+    "20260928000391": {
+      "rcept_no": "20260928000391",
+      "corp_code": "01453944",
+      "disclosure_type": "유상증자결정",
+      "status": "pending_retry",
+      "fetched_at": null,
+      "retries": 1,
+      "last_error": "fetch_failed",
+      "data": null
+    },
+    "20260928000389": {
+      "rcept_no": "20260928000389",
+      "corp_code": "01158632",
+      "disclosure_type": "유상증자결정",
+      "status": "pending_retry",
+      "fetched_at": null,
+      "retries": 1,
+      "last_error": "fetch_failed",
+      "data": null
+    },
+    "20260928000378": {
+      "rcept_no": "20260928000378",
+      "corp_code": "01514005",
+      "disclosure_type": "유상증자결정",
+      "status": "pending_retry",
+      "fetched_at": null,
+      "retries": 1,
+      "last_error": "fetch_failed",
+      "data": null
+    },
+    "20260928000344": {
+      "rcept_no": "20260928000344",
+      "corp_code": "01142075",
+      "disclosure_type": "전환사채권발행결정",
+      "status": "pending_retry",
+      "fetched_at": null,
+      "retries": 1,
+      "last_error": "fetch_failed",
+      "data": null
+    },
+    "20260928000335": {
+      "rcept_no": "20260928000335",
+      "corp_code": "01141599",
+      "disclosure_type": "전환사채권발행결정",
+      "status": "pending_retry",
+      "fetched_at": null,
+      "retries": 1,
+      "last_error": "fetch_failed",
+      "data": null
+    },
+    "20260928000299": {
+      "rcept_no": "20260928000299",
+      "corp_code": "00587925",
+      "disclosure_type": "유상증자결정",
+      "status": "pending_retry",
+      "fetched_at": null,
+      "retries": 1,
+      "last_error": "fetch_failed",
+      "data": null
+    },
+    "20260928000288": {
+      "rcept_no": "20260928000288",
+      "corp_code": "01423837",
+      "disclosure_type": "유상증자결정",
+      "status": "pending_retry",
+      "fetched_at": null,
+      "retries": 1,
+      "last_error": "fetch_failed",
+      "data": null
+    },
+    "20260928000252": {
+      "rcept_no": "20260928000252",
+      "corp_code": "00111704",
+      "disclosure_type": "자기주식취득결정",
+      "status": "resolved",
+      "fetched_at": "2026-09-29T05:08:01.923744+00:00",
+      "retries": 0,
+      "data": {
+        "aqexpd_bgd": "2026-09-29",
+        "aqexpd_edd": "2026-12-28"
+      }
+    },
+    "20260928000182": {
+      "rcept_no": "20260928000182",
+      "corp_code": "00185222",
+      "disclosure_type": "자기주식취득결정",
+      "status": "resolved",
+      "fetched_at": "2026-09-29T05:08:02.749389+00:00",
+      "retries": 0,
+      "data": {
+        "aqexpd_bgd": "2026-09-29",
+        "aqexpd_edd": "2026-12-28"
+      }
     }
   },
   "face_value_by_corp": {}
